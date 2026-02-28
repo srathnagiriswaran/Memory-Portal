@@ -1,0 +1,44 @@
+import Link from "next/link";
+import { Heart, MonitorPlay } from "lucide-react";
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 font-sans">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-lg border border-gray-100 p-8 text-center">
+        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Heart className="w-8 h-8 fill-current" />
+        </div>
+        <h1 className="text-3xl font-semibold text-gray-900 mb-2">Memory Portal</h1>
+        <p className="text-gray-500 mb-8">Choose your experience</p>
+
+        <div className="flex flex-col gap-4">
+          <Link 
+            href="/studio"
+            className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+          >
+            <div className="bg-gray-100 p-3 rounded-lg group-hover:bg-white group-hover:text-emerald-600 transition-colors">
+              <Heart className="w-6 h-6" />
+            </div>
+            <div className="text-left">
+              <h2 className="font-semibold text-gray-900">Caretaker Studio</h2>
+              <p className="text-sm text-gray-500">Manage memories & settings</p>
+            </div>
+          </Link>
+
+          <Link 
+            href="/frame"
+            className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+          >
+            <div className="bg-gray-100 p-3 rounded-lg group-hover:bg-white group-hover:text-emerald-600 transition-colors">
+              <MonitorPlay className="w-6 h-6" />
+            </div>
+            <div className="text-left">
+              <h2 className="font-semibold text-gray-900">Magic Frame</h2>
+              <p className="text-sm text-gray-500">Launch patient display</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
