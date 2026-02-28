@@ -105,7 +105,7 @@ export function useGeminiLive() {
         captureCtxRef.current = new AudioContext({ sampleRate: 16000 });
         playbackCtxRef.current = new AudioContext();
 
-        const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+        const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
@@ -114,7 +114,7 @@ export function useGeminiLive() {
           ws.send(
             JSON.stringify({
               setup: {
-                model: "models/gemini-2.0-flash-live-001",
+                model: "models/gemini-2.5-flash-native-audio-latest",
                 generationConfig: {
                   responseModalities: ["AUDIO"],
                   speechConfig: {
