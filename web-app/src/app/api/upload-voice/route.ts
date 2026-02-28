@@ -22,12 +22,11 @@ export async function POST(request: Request) {
     }
 
     const formData = await request.formData();
-    const photoId = formData.get("photoId") as string;
-    const photoUrl = formData.get("photoUrl") as string;
+    const memoryId = formData.get("memoryId") as string;
     const audioFile = formData.get("audio") as File;
 
-    if (!photoId || !audioFile) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!memoryId || !audioFile) {
+      return NextResponse.json({ error: "Missing required fields (memoryId, audio)" }, { status: 400 });
     }
 
     // Convert audio file to base64 for Google Cloud Speech API
@@ -64,18 +63,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Could not transcribe audio" }, { status: 400 });
     }
 
-    // Save the memory context to Firestore
-    const memoryDoc = {
-      photoId,
-      photoUrl,
-      caretakerEmail: session.user.email,
-      caretakerName: session.user.name,
+    await adminDb.collection("memories").doc(memoryId).update({
       transcription,
-      createdAt: new Date().toISOString(),
-      status: 'active', // ready for the Magic Frame
-    };
-
-    await adminDb.collection("memories").doc(photoId).set(memoryDoc, { merge: true });
+      status: "active",
+    });
 
     return NextResponse.json({ success: true, transcription });
   } catch (error: any) {

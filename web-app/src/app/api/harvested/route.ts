@@ -12,18 +12,19 @@ export async function GET() {
 
     const snapshot = await adminDb.collection("harvested_memories")
       .where("status", "==", "pending_verification")
-      .orderBy("createdAt", "desc")
       .limit(10)
       .get();
 
-    const harvested = snapshot.docs.map((doc: any) => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const harvested = snapshot.docs
+      .map((doc: any) => ({ id: doc.id, ...doc.data() }))
+      .sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
     return NextResponse.json({ harvested });
   } catch (error: any) {
     console.error("Fetch Harvested Memories Error:", error);
+    if (error?.code === 5) {
+      return NextResponse.json({ harvested: [] });
+    }
     return NextResponse.json(
       { error: error.message || "Failed to fetch harvested memories" },
       { status: 500 }

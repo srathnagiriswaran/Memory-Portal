@@ -38,3 +38,17 @@ terraform.rc
 
 .DS_Store
 .cursor/
+
+# Secrets & credentials
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json
+!firebase.json
+!*.config.json
+.env*
+!.env.example
+*-key.json
+*-credentials.json
+service-account*.json

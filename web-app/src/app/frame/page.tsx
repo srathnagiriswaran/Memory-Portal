@@ -168,10 +168,21 @@ export default function MagicFrame() {
                      geminiState === 'connected' ? 'Listening...' : 
                      'Session Ended'}
                   </h2>
-                  <p className="text-2xl text-white/80 font-light leading-relaxed">
-                    {geminiError ? <span className="text-red-400">{geminiError}</span> :
-                     `"${memories[currentPhotoIndex]?.transcription || 'Listening to your story...'}"`}
-                  </p>
+                  <div className="text-2xl text-white/80 font-light leading-relaxed max-h-48 overflow-y-auto">
+                    {geminiError ? (
+                      <span className="text-red-400">{geminiError}</span>
+                    ) : transcript.length > 0 ? (
+                      transcript.slice(-3).map((line, i) => (
+                        <p key={i} className={`mb-1 ${line.startsWith("AI:") ? "text-emerald-300" : "text-white/60"}`}>
+                          {line}
+                        </p>
+                      ))
+                    ) : geminiState === "connected" ? (
+                      <p className="animate-pulse">Listening...</p>
+                    ) : (
+                      <p>&ldquo;{memories[currentPhotoIndex]?.transcription || "Getting ready..."}&rdquo;</p>
+                    )}
+                  </div>
                   <button 
                     onClick={handleEndSession}
                     className="mt-12 px-8 py-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors"

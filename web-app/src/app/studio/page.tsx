@@ -2,78 +2,111 @@
 
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Mic, CheckCircle2, Image as ImageIcon, Settings, Heart, LogOut, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { MediaItem } from "@/lib/googlePhotos";
-import { PhotoCard } from "@/components/PhotoCard";
+import {
+  Mic, CheckCircle2, Image as ImageIcon, Settings, Heart, LogOut,
+  Loader2, Upload, Plus, X,
+} from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { PhotoCard, MemoryItem } from "@/components/PhotoCard";
 
 export default function StudioDashboard() {
   const { data: session, status } = useSession();
-  const [photos, setPhotos] = useState<MediaItem[]>([]);
-  const [harvestedMemories, setHarvestedMemories] = useState<any[]>([]);
+  const [pendingMemories, setPendingMemories] = useState<MemoryItem[]>([]);
   const [vaultMemories, setVaultMemories] = useState<any[]>([]);
-  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [harvestedMemories, setHarvestedMemories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [pendingRes, activeRes, harvestRes] = await Promise.all([
+        fetch("/api/memories?status=pending_voice"),
+        fetch("/api/memories?status=active"),
+        fetch("/api/harvested"),
+      ]);
+
+      const pending = pendingRes.ok ? await pendingRes.json() : { memories: [] };
+      const active = activeRes.ok ? await activeRes.json() : { memories: [] };
+      const harvest = harvestRes.ok ? await harvestRes.json() : { harvested: [] };
+
+      setPendingMemories(pending.memories || []);
+      setVaultMemories(active.memories || []);
+      setHarvestedMemories(harvest.harvested || []);
+    } catch (err) {
+      console.error("Error loading data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Only fetch photos if user is authenticated and we have an access token
-    if (status === "authenticated") {
-      const fetchPhotosAndVault = async () => {
-        setLoadingPhotos(true);
-        try {
-          // Fetch Google Photos
-          const resPhotos = await fetch('/api/photos');
-          const dataPhotos = resPhotos.ok ? await resPhotos.json() : { mediaItems: [] };
-          
-          // Fetch Vault (memories in Firestore)
-          const resVault = await fetch('/api/memories');
-          const dataVault = resVault.ok ? await resVault.json() : { memories: [] };
-          
-          setVaultMemories(dataVault.memories || []);
-          
-          // Filter out photos that are already in the vault
-          const vaultPhotoIds = new Set(dataVault.memories?.map((m: any) => m.id) || []);
-          const pendingPhotos = (dataPhotos.mediaItems || []).filter((p: MediaItem) => !vaultPhotoIds.has(p.id));
-          
-          setPhotos(pendingPhotos);
-        } catch (error) {
-          console.error("Error fetching photos or vault:", error);
-        } finally {
-          setLoadingPhotos(false);
-        }
-      };
+    if (status === "authenticated") fetchAll();
+  }, [status, fetchAll]);
 
-      const fetchHarvested = async () => {
-        try {
-          const res = await fetch('/api/harvested');
-          if (res.ok) {
-            const data = await res.json();
-            setHarvestedMemories(data.harvested || []);
-          }
-        } catch (error) {
-          console.error("Error fetching harvested memories:", error);
-        }
-      };
+  const flash = (msg: string, type: "ok" | "err" = "ok") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-      fetchPhotosAndVault();
-      fetchHarvested();
-    }
-  }, [status]);
+  const uploadFiles = async (files: FileList | File[]) => {
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) { flash("No valid images selected", "err"); return; }
 
-  const handleVerify = async (id: string, action: 'verify' | 'reject') => {
+    setUploading(true);
+    let ok = 0;
     try {
-      await fetch('/api/harvested', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action })
+      for (const file of images) {
+        const form = new FormData();
+        form.append("photo", file);
+        const res = await fetch("/api/upload-photo", { method: "POST", body: form });
+        if (res.ok) {
+          const data = await res.json();
+          setPendingMemories((prev) => [{ id: data.id, photoUrl: data.photoUrl, status: "pending_voice" }, ...prev]);
+          ok++;
+        } else {
+          const err = await res.json().catch(() => ({}));
+          console.error("Upload failed:", err);
+          flash(err.error || `Upload failed (${res.status})`, "err");
+        }
+      }
+      if (ok > 0) flash(`${ok} photo${ok > 1 ? "s" : ""} uploaded — record a voice anchor next!`);
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      flash(err.message || "Upload failed", "err");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+  }, []);
+
+  const handleVerify = async (id: string, action: "verify" | "reject") => {
+    try {
+      await fetch("/api/harvested", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
       });
-      setHarvestedMemories(prev => prev.filter(m => m.id !== id));
+      setHarvestedMemories((prev) => prev.filter((m) => m.id !== id));
     } catch (err) {
       console.error("Error updating memory:", err);
     }
   };
 
   if (status === "loading") {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-emerald-600"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-emerald-600">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
   }
 
   if (status === "unauthenticated") {
@@ -105,7 +138,7 @@ export default function StudioDashboard() {
         <div className="flex items-center gap-4 text-sm">
           <div className="hidden sm:flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            Sarah's Frame is Active
+            Sarah&apos;s Frame is Active
           </div>
           <div className="flex items-center gap-3">
             <span className="text-gray-600 font-medium hidden sm:inline">{session?.user?.name}</span>
@@ -116,11 +149,7 @@ export default function StudioDashboard() {
                 {session?.user?.name?.charAt(0) || "U"}
               </div>
             )}
-            <button 
-              onClick={() => signOut()}
-              className="text-gray-500 hover:text-red-500 transition-colors ml-2"
-              title="Sign Out"
-            >
+            <button onClick={() => signOut()} className="text-gray-500 hover:text-red-500 transition-colors ml-2" title="Sign Out">
               <LogOut className="w-5 h-5" />
             </button>
           </div>
@@ -128,8 +157,7 @@ export default function StudioDashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-8">
-        
-        {/* Memory Harvest Section */}
+        {/* Memory Harvest */}
         <section>
           <h2 className="text-xl font-medium mb-4 text-gray-800">Latest Memory Harvest</h2>
           {harvestedMemories.length === 0 ? (
@@ -147,20 +175,20 @@ export default function StudioDashboard() {
                     <h3 className="font-medium text-gray-900 mb-1">New insight from {memory.caretakerName || "a recent"} session</h3>
                     <ul className="text-gray-600 leading-relaxed list-disc list-inside ml-2">
                       {memory.facts?.map((fact: string, idx: number) => (
-                        <li key={idx}>"{fact}"</li>
+                        <li key={idx}>&quot;{fact}&quot;</li>
                       ))}
                     </ul>
                   </div>
                   <div className="flex flex-col gap-2 w-full sm:w-auto">
-                    <button 
-                      onClick={() => handleVerify(memory.id, 'verify')}
+                    <button
+                      onClick={() => handleVerify(memory.id, "verify")}
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <CheckCircle2 className="w-5 h-5" />
-                      Verify & Save
+                      Verify &amp; Save
                     </button>
-                    <button 
-                      onClick={() => handleVerify(memory.id, 'reject')}
+                    <button
+                      onClick={() => handleVerify(memory.id, "reject")}
                       className="w-full bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       Discard
@@ -172,34 +200,80 @@ export default function StudioDashboard() {
           )}
         </section>
 
+        {/* Upload Zone */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-medium text-gray-800">Upload Photos</h2>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1 disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" />
+              Browse Files
+            </button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+          />
+
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
+              dragOver
+                ? "border-emerald-400 bg-emerald-50"
+                : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/50"
+            }`}
+          >
+            {uploading ? (
+              <div className="flex flex-col items-center gap-2 text-gray-400">
+                <Loader2 className="w-10 h-10 animate-spin" />
+                <p className="text-sm font-medium">Uploading…</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-gray-400">
+                <Upload className="w-10 h-10" />
+                <p className="text-sm font-medium text-gray-600">Drag &amp; drop photos here, or click to browse</p>
+                <p className="text-xs text-gray-400">JPG, PNG, HEIC — up to 10 MB each</p>
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Curation Queue */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-medium text-gray-800">Curation Queue</h2>
             <span className="text-sm text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
-              {photos.length} Pending
+              {pendingMemories.length} Pending
             </span>
           </div>
-          
-          {loadingPhotos ? (
+
+          {loading ? (
             <div className="py-12 flex justify-center items-center text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin" />
             </div>
-          ) : photos.length === 0 ? (
+          ) : pendingMemories.length === 0 ? (
             <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm text-gray-500">
-              No new photos in the shared album right now.
+              No photos waiting for voice anchors. Upload some above!
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {photos.map((photo) => (
-                <PhotoCard key={photo.id} photo={photo} onUploadSuccess={() => {
-                  setPhotos(prev => prev.filter(p => p.id !== photo.id));
-                  setVaultMemories(prev => [{
-                    id: photo.id,
-                    photoUrl: `${photo.baseUrl}=w1024-h1024-c`,
-                    transcription: "Processing...",
-                  }, ...prev]);
-                }} />
+              {pendingMemories.map((memory) => (
+                <PhotoCard
+                  key={memory.id}
+                  memory={memory}
+                  onUploadSuccess={fetchAll}
+                />
               ))}
             </div>
           )}
@@ -213,8 +287,8 @@ export default function StudioDashboard() {
               {vaultMemories.length} Active in Magic Frame
             </span>
           </div>
-          
-          {loadingPhotos ? (
+
+          {loading ? (
             <div className="py-12 flex justify-center items-center text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin" />
             </div>
@@ -227,18 +301,14 @@ export default function StudioDashboard() {
               {vaultMemories.map((memory) => (
                 <div key={memory.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                   <div className="h-32 bg-gray-200 relative">
-                    <img 
-                      src={memory.photoUrl} 
-                      alt="Vault memory" 
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={memory.photoUrl} alt="Vault memory" className="w-full h-full object-cover" />
                     <div className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-md text-white text-xs px-2 py-1 rounded flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
                       Active
                     </div>
                   </div>
                   <div className="p-4 flex flex-col gap-2">
-                    <p className="text-sm text-gray-600 line-clamp-3 italic">"{memory.transcription}"</p>
+                    <p className="text-sm text-gray-600 line-clamp-3 italic">&quot;{memory.transcription}&quot;</p>
                     <span className="text-xs text-gray-400 mt-auto">From: {memory.caretakerName || "Family"}</span>
                   </div>
                 </div>
@@ -246,10 +316,18 @@ export default function StudioDashboard() {
             </div>
           )}
         </section>
-
       </main>
 
-      {/* Mobile Bottom Nav (visible only on small screens) */}
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all ${
+          toast.type === "ok" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
+        }`}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Mobile Bottom Nav */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-3 pb-safe z-50">
         <button className="flex flex-col items-center text-emerald-600">
           <ImageIcon className="w-6 h-6" />
