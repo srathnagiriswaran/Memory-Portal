@@ -14,15 +14,17 @@ INSTRUCTIONS:
 7. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.
 15. PHOTO NAVIGATION (CRITICAL): You have an 'AVAILABLE PHOTO ALBUM CATALOG' listing all photos by ID. If the user brings up a topic, a memory, a person, or an object that matches a DIFFERENT photo in the catalog (e.g., user mentions an orange and there is a photo ID about planting oranges), you MUST immediately stop talking and CALL THE 'changePhoto' TOOL with the exact [ID] of the matching photo. DO NOT ANSWER IN TEXT FIRST. Call the tool first so the user can see the new photo before you comment on it.
 16. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool with the [ID] of a happy or calming memory from the catalog to regulate their emotions.
-17. FAMILY KNOWLEDGE: Use any provided family knowledge graph context seamlessly as if you've always known their family. Actively draw connections between what the user says and the hobbies, details, or relationships of their family members to make the conversation deeply personal (e.g., "That reminds me of your daughter Sarah's love for gardening!").`;
+17. FAMILY KNOWLEDGE: Use any provided family knowledge graph context seamlessly as if you've always known their family. Actively draw connections between what the user says and the hobbies, details, or relationships of their family members to make the conversation deeply personal (e.g., "That reminds me of your daughter Sarah's love for gardening!").
+18. ENDING THE CONVERSATION: If the user says they want to stop, are tired, want to go to sleep, or want to say goodbye, warmly say goodbye and immediately call the 'endSession' tool to gracefully close the application.`;
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
-export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => string } = {}) {
+export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => string; onEndSession?: () => void } = {}) {
   const [state, setState] = useState<GeminiLiveState>("disconnected");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string[]>([]);
   const [isAiTalking, setIsAiTalking] = useState(false);
+  const [hasSpoken, setHasSpoken] = useState(false);
   const [volume, setVolume] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -45,10 +47,15 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
   const isAiTalkingRef = useRef(isAiTalking);
   const isMutedRef = useRef(isMuted);
   const onChangePhotoRef = useRef(options.onChangePhoto);
+  const onEndSessionRef = useRef(options.onEndSession);
 
   useEffect(() => {
     onChangePhotoRef.current = options.onChangePhoto;
   }, [options.onChangePhoto]);
+
+  useEffect(() => {
+    onEndSessionRef.current = options.onEndSession;
+  }, [options.onEndSession]);
 
   useEffect(() => {
     isAiTalkingRef.current = isAiTalking;
@@ -251,17 +258,27 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                   parts: [{ text: SYSTEM_INSTRUCTION }],
                 },
                 tools: [{
-                  functionDeclarations: [{
-                    name: "changePhoto",
-                    description: "Changes the displayed photo to a specific ID from the AVAILABLE PHOTO ALBUM CATALOG. Use this when the user mentions a topic that matches another photo in the catalog.",
-                    parameters: {
-                      type: "OBJECT",
-                      properties: {
-                        photoId: { type: "STRING", description: "The exact ID of the photo to display, taken from the catalog." }
-                      },
-                      required: ["photoId"]
+                  functionDeclarations: [
+                    {
+                      name: "changePhoto",
+                      description: "Changes the displayed photo to a specific ID from the AVAILABLE PHOTO ALBUM CATALOG. Use this when the user mentions a topic that matches another photo in the catalog.",
+                      parameters: {
+                        type: "OBJECT",
+                        properties: {
+                          photoId: { type: "STRING", description: "The exact ID of the photo to display, taken from the catalog." }
+                        },
+                        required: ["photoId"]
+                      }
+                    },
+                    {
+                      name: "endSession",
+                      description: "Ends the conversation gracefully and closes the session. Use this when the user says goodbye or indicates they want to stop.",
+                      parameters: {
+                        type: "OBJECT",
+                        properties: {}
+                      }
                     }
-                  }]
+                  ]
                 }]
               },
             })
@@ -342,6 +359,8 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                         }
                       }));
                     }
+                  } else if (call.name === "endSession" && onEndSessionRef.current) {
+                    onEndSessionRef.current();
                   }
                 }
               }
@@ -365,6 +384,8 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                         }
                       }));
                     }
+                  } else if (call.name === "endSession" && onEndSessionRef.current) {
+                    onEndSessionRef.current();
                   }
                 }
               }
@@ -388,6 +409,8 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                         }
                       }));
                     }
+                  } else if (name === "endSession" && onEndSessionRef.current) {
+                    onEndSessionRef.current();
                   }
                 }
                 if (part.text) {
@@ -408,6 +431,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                 }
                 if (part.inlineData?.mimeType?.startsWith("audio/pcm")) {
                   setIsAiTalking(true);
+                  setHasSpoken(true);
                   playAudioChunk(part.inlineData.data);
                 }
               }
@@ -455,6 +479,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
         (window as any)._audioProcessor = null;
     }
     setState("disconnected");
+    setHasSpoken(false);
   }, []);
 
   // Idle timeout detector (e.g., 2 minutes of silence)
@@ -478,5 +503,5 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
     };
   }, [disconnect]);
 
-  return { state, error, transcript, connect, disconnect, isAiTalking, volume, isMuted, toggleMute };
+  return { state, error, transcript, connect, disconnect, isAiTalking, hasSpoken, volume, isMuted, toggleMute };
 }

@@ -69,7 +69,10 @@ export default function MagicFrame() {
   }, [memories]);
 
   const { isAwake, enable } = useNoSleep();
-  const { state: geminiState, error: geminiError, transcript, connect, disconnect, isAiTalking, volume, isMuted, toggleMute } = useGeminiLive({ onChangePhoto });
+  const { state: geminiState, error: geminiError, transcript, connect, disconnect, isAiTalking, hasSpoken, volume, isMuted, toggleMute } = useGeminiLive({ 
+    onChangePhoto,
+    onEndSession: () => handleEndSession()
+  });
 
   // Fetch active memories and family graph
   useEffect(() => {
@@ -306,7 +309,11 @@ export default function MagicFrame() {
                       <p className={`text-sm md:text-lg font-medium uppercase tracking-widest ${isMuted ? 'text-red-400' : 'text-emerald-400'}`}>
                         {geminiState === 'connecting' ? 'Connecting...' : 
                          geminiState === 'connected' ? (
-                           isMuted ? 'Muted' : (isAiTalking ? 'AI is speaking...' : 'Listening...')
+                           isMuted ? 'Muted' : (
+                             isAiTalking ? 'AI is speaking...' : (
+                               hasSpoken ? 'Listening...' : 'AI is getting ready...'
+                             )
+                           )
                          ) : 'Session Ended'}
                       </p>
                       {geminiError && (
