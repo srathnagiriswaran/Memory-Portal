@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Mic, CheckCircle2, Image as ImageIcon, Settings, Heart, LogOut,
-  Loader2, Upload, Plus, X, MonitorPlay, Trash2
+  Loader2, Upload, Plus, X, MonitorPlay, Trash2, Edit2
 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { PhotoCard, MemoryItem } from "@/components/PhotoCard";
@@ -26,6 +26,9 @@ export default function StudioDashboard() {
   
   const [newFamilyMember, setNewFamilyMember] = useState({ name: '', relationship: 'Daughter', customRelationship: '', details: '' });
   const [addingFamily, setAddingFamily] = useState(false);
+
+  const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
+  const [editMemoryText, setEditMemoryText] = useState("");
 
   const RELATIONSHIPS = ["Son", "Daughter", "Husband", "Wife", "Partner", "Brother", "Sister", "Grandson", "Granddaughter", "Friend", "Other"];
 
@@ -196,6 +199,38 @@ export default function StudioDashboard() {
     } catch (err) {
       console.error("Error deleting memory:", err);
       flash("Failed to delete memory", "err");
+    }
+  };
+
+  const startEditingMemory = (memory: any) => {
+    setEditingMemoryId(memory.id);
+    setEditMemoryText(memory.transcription || "");
+  };
+
+  const cancelEditingMemory = () => {
+    setEditingMemoryId(null);
+    setEditMemoryText("");
+  };
+
+  const handleSaveMemoryEdit = async (id: string) => {
+    if (!editMemoryText.trim()) return;
+    try {
+      const res = await fetch("/api/upload-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memoryId: id, transcription: editMemoryText.trim() })
+      });
+
+      if (res.ok) {
+        setVaultMemories(prev => prev.map(m => m.id === id ? { ...m, transcription: editMemoryText.trim() } : m));
+        setEditingMemoryId(null);
+        flash("Memory context updated");
+      } else {
+        flash("Failed to update context", "err");
+      }
+    } catch (err) {
+      console.error(err);
+      flash("Failed to update context", "err");
     }
   };
 
@@ -565,9 +600,45 @@ export default function StudioDashboard() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="p-4 flex flex-col gap-2">
-                    <p className="text-sm text-gray-600 line-clamp-3 italic">&quot;{memory.transcription}&quot;</p>
-                    <span className="text-xs text-gray-400 mt-auto">From: {memory.caretakerName || "Family"}</span>
+                  <div className="p-4 flex flex-col gap-2 flex-1">
+                    {editingMemoryId === memory.id ? (
+                      <div className="flex flex-col gap-2 h-full">
+                        <textarea
+                          className="w-full border rounded-xl p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none flex-1"
+                          value={editMemoryText}
+                          onChange={(e) => setEditMemoryText(e.target.value)}
+                          placeholder="Type memory context..."
+                        />
+                        <div className="flex gap-2 mt-auto">
+                          <button
+                            onClick={cancelEditingMemory}
+                            className="flex-1 bg-gray-100 text-gray-600 hover:bg-gray-200 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveMemoryEdit(memory.id)}
+                            className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="text-sm text-gray-600 line-clamp-3 italic">&quot;{memory.transcription}&quot;</p>
+                          <button 
+                            onClick={() => startEditingMemory(memory)}
+                            className="text-gray-400 hover:text-emerald-600 transition-colors p-1"
+                            title="Edit Context"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <span className="text-xs text-gray-400 mt-auto">From: {memory.caretakerName || "Family"}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
