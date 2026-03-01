@@ -106,24 +106,11 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
 
       // Better VAD (Voice Activity Detection) - interrupt only if sustained loud noise (e.g. 3 frames = ~0.75s)
       if (loudFramesRef.current > 2 && isAiTalkingRef.current) { 
-        console.log("[GeminiLive] Client-side VAD detected sustained user speech, sending clientContent to interrupt");
+        console.log("[GeminiLive] Client-side VAD detected sustained user speech, stopping local playback");
         
-        // Force the client to send a message to interrupt the server's generation
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(
-                JSON.stringify({
-                    clientContent: {
-                        turns: [
-                            {
-                                role: "user",
-                                parts: [{ text: "Hold on, I want to say something." }]
-                            }
-                        ],
-                        turnComplete: true
-                    }
-                })
-            );
-        }
+        // We used to send a manual text turn here to interrupt, but that confuses the AI.
+        // Instead, we just stop local playback to make it feel responsive. The server's own VAD
+        // will detect the audio stream and send an 'interrupted: true' signal shortly after.
         
         // Stop current audio playback
         activeSourcesRef.current.forEach((src) => {
@@ -346,32 +333,55 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
               setIsAiTalking(false);
             }
 
+            // Function to handle tool calls to avoid duplication
+            const handleToolCall = (call: any) => {
+              const name = call.name;
+              const args = call.args || {};
+              const id = call.id;
+
+              console.log("[GeminiLive] Tool call received:", name, args);
+
+              if (name === "changePhoto" && onChangePhotoRef.current) {
+                const newContext = onChangePhotoRef.current(args.photoId || "");
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({
+                    toolResponse: {
+                      functionResponses: [{
+                        id: id,
+                        name: "changePhoto",
+                        response: { result: newContext }
+                      }]
+                    }
+                  }));
+                }
+              } else if (name === "endSession" && onEndSessionRef.current) {
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({
+                    toolResponse: {
+                      functionResponses: [{
+                        id: id,
+                        name: "endSession",
+                        response: { result: "Session ending..." }
+                      }]
+                    }
+                  }));
+                }
+                
+                if (activeSourcesRef.current.length === 0) {
+                  onEndSessionRef.current();
+                } else {
+                  pendingEndSessionRef.current = true;
+                }
+              }
+            };
+
             // Handle Tool Calls (Live API sends these outside of modelTurn)
             if (data.toolCall) {
               console.log("[GeminiLive] Received top-level toolCall:", data.toolCall);
               const functionCalls = data.toolCall.functionCalls;
               if (functionCalls && functionCalls.length > 0) {
                 for (const call of functionCalls) {
-                  if (call.name === "changePhoto" && onChangePhotoRef.current) {
-                    const newContext = onChangePhotoRef.current(call.args?.photoId || "");
-                    if (ws.readyState === WebSocket.OPEN) {
-                      ws.send(JSON.stringify({
-                        toolResponse: {
-                          functionResponses: [{
-                            id: call.id,
-                            name: "changePhoto",
-                            response: { result: newContext }
-                          }]
-                        }
-                      }));
-                    }
-                  } else if (call.name === "endSession" && onEndSessionRef.current) {
-                    if (activeSourcesRef.current.length === 0) {
-                      onEndSessionRef.current();
-                    } else {
-                      pendingEndSessionRef.current = true;
-                    }
-                  }
+                  handleToolCall(call);
                 }
               }
             }
@@ -381,26 +391,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
               const functionCalls = data.serverContent.toolCall.functionCalls;
               if (functionCalls && functionCalls.length > 0) {
                 for (const call of functionCalls) {
-                  if (call.name === "changePhoto" && onChangePhotoRef.current) {
-                    const newContext = onChangePhotoRef.current(call.args?.photoId || "");
-                    if (ws.readyState === WebSocket.OPEN) {
-                      ws.send(JSON.stringify({
-                        toolResponse: {
-                          functionResponses: [{
-                            id: call.id,
-                            name: "changePhoto",
-                            response: { result: newContext }
-                          }]
-                        }
-                      }));
-                    }
-                  } else if (call.name === "endSession" && onEndSessionRef.current) {
-                    if (activeSourcesRef.current.length === 0) {
-                      onEndSessionRef.current();
-                    } else {
-                      pendingEndSessionRef.current = true;
-                    }
-                  }
+                  handleToolCall(call);
                 }
               }
             }
@@ -408,28 +399,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
             if (data.serverContent?.modelTurn) {
               for (const part of data.serverContent.modelTurn.parts ?? []) {
                 if (part.functionCall) {
-                  const { name, args, id } = part.functionCall;
-                  console.log("[GeminiLive] Tool call received:", name, args);
-                  if (name === "changePhoto" && onChangePhotoRef.current) {
-                    const newContext = onChangePhotoRef.current(args.photoId || "");
-                    if (ws.readyState === WebSocket.OPEN) {
-                      ws.send(JSON.stringify({
-                        toolResponse: {
-                          functionResponses: [{
-                            id: id,
-                            name: "changePhoto",
-                            response: { result: newContext }
-                          }]
-                        }
-                      }));
-                    }
-                  } else if (name === "endSession" && onEndSessionRef.current) {
-                    if (activeSourcesRef.current.length === 0) {
-                      onEndSessionRef.current();
-                    } else {
-                      pendingEndSessionRef.current = true;
-                    }
-                  }
+                  handleToolCall(part.functionCall);
                 }
                 if (part.text) {
                   // Aggressively strip out thoughts enclosed in asterisks (e.g., **Thought**)
