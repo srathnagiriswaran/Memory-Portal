@@ -528,25 +528,34 @@ export default function StudioDashboard() {
             {insights && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-indigo-100/50">
-                  <div className="flex items-center gap-2 text-indigo-800 mb-3">
-                    <Heart className="w-5 h-5 fill-indigo-200" />
-                    <h3 className="font-semibold">Overall Mood</h3>
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex items-center gap-2 text-indigo-800">
+                      <Heart className="w-5 h-5 fill-indigo-200" />
+                      <h3 className="font-semibold">Overall Mood</h3>
+                    </div>
+                    <span className="text-[10px] text-indigo-600/70 font-medium uppercase tracking-wider">How are they feeling?</span>
                   </div>
                   <p className="text-gray-700 text-sm leading-relaxed">{insights.overallMood}</p>
                 </div>
                 
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-indigo-100/50">
-                  <div className="flex items-center gap-2 text-indigo-800 mb-3">
-                    <Mic className="w-5 h-5" />
-                    <h3 className="font-semibold">Current Fixations</h3>
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex items-center gap-2 text-indigo-800">
+                      <Mic className="w-5 h-5" />
+                      <h3 className="font-semibold">Recent Topics</h3>
+                    </div>
+                    <span className="text-[10px] text-indigo-600/70 font-medium uppercase tracking-wider">What's on their mind?</span>
                   </div>
                   <p className="text-gray-700 text-sm leading-relaxed">{insights.currentFixations}</p>
                 </div>
 
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-indigo-100/50">
-                  <div className="flex items-center gap-2 text-indigo-800 mb-3">
-                    <Camera className="w-5 h-5" />
-                    <h3 className="font-semibold">Upload Suggestions</h3>
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex items-center gap-2 text-indigo-800">
+                      <Camera className="w-5 h-5" />
+                      <h3 className="font-semibold">Upload Suggestions</h3>
+                    </div>
+                    <span className="text-[10px] text-indigo-600/70 font-medium uppercase tracking-wider">To Spark Joy Next Time</span>
                   </div>
                   <ul className="text-gray-700 text-sm leading-relaxed list-disc list-inside space-y-1">
                     {insights.uploadSuggestions.map((suggestion, idx) => (
