@@ -26,9 +26,11 @@ export async function POST(request: Request) {
       
       CRITICAL RULES FOR EXTRACTING FACTS:
       - DO NOT extract or store anything negative, distressing, or sad. We do not want to bring up negative memories in future conversations.
-      - Focus ONLY on positive, neutral, or factual observations.
+      - Focus ONLY on positive, neutral, or factual observations about the patient's life, family, or the photo.
+      - DO NOT include meta-commentary about the AI or the conversation itself (e.g., NEVER write "The AI companion interpreted..." or "The user repeatedly emphasized...").
+      - Write the facts from the perspective of the patient's memory (e.g., "Loved remembering the trip to the beach", "Has a positive memory of an orange tree in the backyard", "Enjoys looking at cars").
       - Ensure facts are grounded in the transcript. DO NOT hallucinate details.
-      - Frame the facts in a way that is safe and pleasant to bring up later (e.g., "Loved remembering the trip to the beach").
+      - Frame the facts in a way that is safe and pleasant to bring up later.
 
       Return the output strictly as a JSON object with the following structure. Do NOT include markdown formatting or backticks.
       {
