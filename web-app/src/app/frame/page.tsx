@@ -26,6 +26,8 @@ FAMILY KNOWLEDGE GRAPH:
 `;
 
 export default function MagicFrame() {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isActiveSession, setIsActiveSession] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
