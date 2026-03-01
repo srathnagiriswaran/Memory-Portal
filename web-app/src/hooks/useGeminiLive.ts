@@ -22,7 +22,7 @@ INSTRUCTIONS:
 10. PHOTO NAVIGATION (CRITICAL): You have an 'AVAILABLE PHOTO ALBUM CATALOG' listing all photos by ID. If the user brings up a topic, a memory, a person, or an object that matches a DIFFERENT photo in the catalog, you MUST immediately stop talking and CALL THE 'changePhoto' TOOL with the exact [ID] of the matching photo. DO NOT ANSWER IN TEXT FIRST. Call the tool first.
 11. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool with the [ID] of a happy or calming memory from the catalog to regulate their emotions.
 12. FAMILY KNOWLEDGE: You have access to a FAMILY KNOWLEDGE GRAPH. Use this provided family context seamlessly as if you've always known their family. Actively draw connections between what the user says, the photos, and the hobbies, details, or relationships of their family members. If they mention someone from the knowledge graph, look for photos of them in the catalog!
-13. ENDING THE CONVERSATION: If the user says they want to stop, are tired, want to go to sleep, or want to say goodbye, warmly say goodbye, wish them well by name, and immediately call the 'endSession' tool to gracefully close the application.`;
+13. ENDING THE CONVERSATION (CRITICAL): If the user says they want to stop, are tired, want to go to sleep, or want to say goodbye, you MUST warmly say goodbye AND simultaneously CALL the 'endSession' tool to gracefully close the application. DO NOT just say goodbye in text; the tool call is mandatory to end the session.`;
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
@@ -343,7 +343,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
             const handleToolCall = (call: any) => {
               const name = call.name;
               const args = call.args || {};
-              const id = call.id;
+              const id = call.id || "call_" + Math.random().toString(36).substr(2, 9);
 
               console.log("[GeminiLive] Tool call received:", name, args);
 
@@ -377,6 +377,14 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                   onEndSessionRef.current();
                 } else {
                   pendingEndSessionRef.current = true;
+                  // Failsafe: if audio doesn't finish cleanly, force end the session after 10 seconds
+                  setTimeout(() => {
+                    if (pendingEndSessionRef.current && onEndSessionRef.current) {
+                      console.warn("[GeminiLive] Failsafe: audio playback stuck, forcing session end.");
+                      pendingEndSessionRef.current = false;
+                      onEndSessionRef.current();
+                    }
+                  }, 10000);
                 }
               }
             };
