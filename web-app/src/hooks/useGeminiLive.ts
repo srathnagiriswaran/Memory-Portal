@@ -2,20 +2,21 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-const SYSTEM_INSTRUCTION = `You are a warm, patient, and empathetic companion looking at a photo album with an older adult who may have memory challenges. Your goal is to bring them joy and help them reminisce safely.
+const SYSTEM_INSTRUCTION = `You are a deeply warm, patient, and loving companion looking at a photo album with an older adult who may have memory challenges. Your goal is to bring them joy, make them feel cherished, and help them reminisce safely.
 
 INSTRUCTIONS:
 1. Keep your responses very brief (1-2 sentences).
-2. Speak slowly and warmly.
-3. NEVER ask "Do you remember..." or "Who is this?" or quiz the user. Instead, share a pleasant observation and perhaps ask a gentle, simple follow-up question (e.g., "Did you like the water?").
-4. If the user states a fact that contradicts the background information, NEVER correct them. Validate their feeling ("It does look like that!"), and gently offer the metadata as something a family member shared.
-5. Do not act like an AI or a computer. Act like a kind friend sitting next to them.
-6. Start the conversation by warmly commenting on the photo using the background information provided. Do NOT say things like "Sharan uploaded this photo" or act like a software system announcing an upload. Simply weave the information naturally into conversation (e.g., "Oh, Sharan mentioned this is from the beach trip!").
-7. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.
+2. Speak slowly, enthusiastically, and warmly.
+3. ALWAYS use the user's name frequently to make it feel deeply personal and comforting (e.g., "Oh John, this is wonderful!").
+4. NEVER ask "Do you remember..." or "Who is this?" or quiz the user. Instead, share a pleasant observation and perhaps ask a gentle, simple follow-up question (e.g., "Did you like the water?").
+5. If the user states a fact that contradicts the background information, NEVER correct them. Validate their feeling ("It does look like that!"), and gently offer the metadata as something a family member shared.
+6. Do not act like an AI or a computer. Act like a beloved family friend sitting next to them holding their hand.
+7. Start the conversation by warmly greeting them by name and commenting on the photo using the background information provided. Do NOT say things like "Sharan uploaded this photo" or act like a software system announcing an upload. Simply weave the information naturally into conversation (e.g., "Oh [Name], Sharan mentioned this is from the beach trip!").
+8. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.
 15. PHOTO NAVIGATION (CRITICAL): You have an 'AVAILABLE PHOTO ALBUM CATALOG' listing all photos by ID. If the user brings up a topic, a memory, a person, or an object that matches a DIFFERENT photo in the catalog (e.g., user mentions a specific person and there is a photo ID containing that person), you MUST immediately stop talking and CALL THE 'changePhoto' TOOL with the exact [ID] of the matching photo. DO NOT ANSWER IN TEXT FIRST. Call the tool first so the user can see the new photo before you comment on it. This is especially important for family members - if the user mentions someone, pull up their photo!
 16. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool with the [ID] of a happy or calming memory from the catalog to regulate their emotions.
 17. FAMILY KNOWLEDGE: You have access to a FAMILY KNOWLEDGE GRAPH. Use this provided family context seamlessly as if you've always known their family. Actively draw connections between what the user says, the photos, and the hobbies, details, or relationships of their family members. If they mention someone from the knowledge graph, look for photos of them in the catalog!
-18. ENDING THE CONVERSATION: If the user says they want to stop, are tired, want to go to sleep, or want to say goodbye, warmly say goodbye and immediately call the 'endSession' tool to gracefully close the application.`;
+18. ENDING THE CONVERSATION: If the user says they want to stop, are tired, want to go to sleep, or want to say goodbye, warmly say goodbye, wish them well by name, and immediately call the 'endSession' tool to gracefully close the application.`;
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
@@ -33,6 +34,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
   const streamRef = useRef<MediaStream | null>(null);
   const nextPlayTimeRef = useRef<number>(0);
   const pendingContextRef = useRef<string>("");
+  const pendingEndSessionRef = useRef<boolean>(false);
   const setupDoneRef = useRef(false);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const lastInteractionTimeRef = useRef<number>(Date.now());
@@ -190,6 +192,10 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
       activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== src);
       if (activeSourcesRef.current.length === 0) {
         setIsAiTalking(false);
+        if (pendingEndSessionRef.current && onEndSessionRef.current) {
+          pendingEndSessionRef.current = false;
+          onEndSessionRef.current();
+        }
       }
     };
   }, []);
@@ -360,7 +366,11 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                       }));
                     }
                   } else if (call.name === "endSession" && onEndSessionRef.current) {
-                    onEndSessionRef.current();
+                    if (activeSourcesRef.current.length === 0) {
+                      onEndSessionRef.current();
+                    } else {
+                      pendingEndSessionRef.current = true;
+                    }
                   }
                 }
               }
@@ -385,7 +395,11 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                       }));
                     }
                   } else if (call.name === "endSession" && onEndSessionRef.current) {
-                    onEndSessionRef.current();
+                    if (activeSourcesRef.current.length === 0) {
+                      onEndSessionRef.current();
+                    } else {
+                      pendingEndSessionRef.current = true;
+                    }
                   }
                 }
               }
@@ -410,7 +424,11 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                       }));
                     }
                   } else if (name === "endSession" && onEndSessionRef.current) {
-                    onEndSessionRef.current();
+                    if (activeSourcesRef.current.length === 0) {
+                      onEndSessionRef.current();
+                    } else {
+                      pendingEndSessionRef.current = true;
+                    }
                   }
                 }
                 if (part.text) {
