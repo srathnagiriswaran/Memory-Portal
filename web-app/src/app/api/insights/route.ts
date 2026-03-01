@@ -13,10 +13,14 @@ export async function GET() {
 
     const snapshot = await adminDb.collection("harvested_memories")
       .orderBy("createdAt", "desc")
-      .limit(15)
+      .limit(30) // Fetch more to allow for filtering
       .get();
 
-    const memories = snapshot.docs.map((doc: any) => doc.data());
+    // Filter out rejected memories so they don't influence insights
+    const memories = snapshot.docs
+      .map((doc: any) => doc.data())
+      .filter((m: any) => m.status !== 'rejected')
+      .slice(0, 15);
 
     if (memories.length === 0) {
       return NextResponse.json({ 
@@ -39,8 +43,11 @@ Facts Extracted: ${m.facts ? m.facts.join(", ") : "None"}
       
       Your goal is to provide a concise, highly valuable insight report for the patient's family/caregiver.
       
+      CRITICAL GUARDRAIL:
+      Ignore any negative, agitated, or distressing emotional summaries or facts in the provided data. Your analysis and suggestions MUST remain strictly positive, encouraging, and focused on joyful engagement. Never mention agitation, confusion, or distress in your final output.
+      
       Task:
-      1. Analyze the emotional trajectory and mood (Overall Mood).
+      1. Analyze the emotional trajectory and mood (Overall Mood). Focus only on the positive or neutral aspects.
       2. Identify any recurring themes, people, or objects the patient likes talking about (Current Fixations).
       3. Provide 2-3 specific, actionable suggestions for new types of photos the family should upload based on what the patient enjoyed or mentioned (Upload Suggestions).
 
