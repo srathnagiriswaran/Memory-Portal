@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useNoSleep } from "@/hooks/useNoSleep";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { AnimatePresence, motion } from "framer-motion";
-import { Power, MessageCircleHeart, Expand, Mic, Loader2 } from "lucide-react";
+import { Power, MessageCircleHeart, Expand, Mic, MicOff, Loader2 } from "lucide-react";
 
 interface Memory {
   id: string;
@@ -15,7 +15,7 @@ interface Memory {
 
 export default function MagicFrame() {
   const { isAwake, enable } = useNoSleep();
-  const { state: geminiState, error: geminiError, transcript, connect, disconnect, isAiTalking, volume } = useGeminiLive();
+  const { state: geminiState, error: geminiError, transcript, connect, disconnect, isAiTalking, volume, isMuted, toggleMute } = useGeminiLive();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActiveSession, setIsActiveSession] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -161,16 +161,20 @@ export default function MagicFrame() {
                 >
                   <div className="bg-black/40 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-white/20 shadow-2xl flex flex-col md:flex-row items-center gap-4 md:gap-6">
                     {/* Left: Dynamic Mic / Status Indicator */}
-                    <div className="relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 flex items-center justify-center">
+                    <button 
+                      onClick={toggleMute}
+                      className="relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 flex items-center justify-center focus:outline-none"
+                    >
                       {geminiState === 'connecting' ? (
                         <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-500/20 rounded-full flex items-center justify-center">
                           <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-emerald-400 animate-spin" />
                         </div>
                       ) : geminiState === 'connected' ? (
                         <>
-                          {isAiTalking ? (
+                          {!isMuted && isAiTalking && (
                             <div className="absolute inset-0 bg-emerald-500/40 rounded-full animate-ping" />
-                          ) : (
+                          )}
+                          {!isMuted && !isAiTalking && (
                             <div 
                               className="absolute bg-emerald-500/30 rounded-full transition-all duration-200 ease-out"
                               style={{ 
@@ -179,23 +183,27 @@ export default function MagicFrame() {
                               }} 
                             />
                           )}
-                          <div className={`relative w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center z-10 transition-colors shadow-lg ${isAiTalking ? 'bg-emerald-400' : 'bg-emerald-600'}`}>
-                            <Mic className={`w-6 h-6 md:w-8 md:h-8 text-white ${isAiTalking ? 'opacity-80' : 'opacity-100'}`} />
+                          <div className={`relative w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center z-10 transition-colors shadow-lg ${isMuted ? 'bg-red-500/20' : (isAiTalking ? 'bg-emerald-400' : 'bg-emerald-600')}`}>
+                            {isMuted ? (
+                              <MicOff className="w-6 h-6 md:w-8 md:h-8 text-red-400" />
+                            ) : (
+                              <Mic className={`w-6 h-6 md:w-8 md:h-8 text-white ${isAiTalking ? 'opacity-80' : 'opacity-100'}`} />
+                            )}
                           </div>
                         </>
                       ) : (
                         <div className="w-12 h-12 md:w-16 md:h-16 bg-red-500/20 rounded-full flex items-center justify-center">
-                          <Mic className="w-6 h-6 md:w-8 md:h-8 text-red-400" />
+                          <MicOff className="w-6 h-6 md:w-8 md:h-8 text-red-400" />
                         </div>
                       )}
-                    </div>
+                    </button>
 
                     {/* Middle: Transcript & Status Text */}
                     <div className="flex-1 min-w-0 text-center md:text-left">
-                      <p className="text-xs md:text-sm font-medium text-emerald-400 uppercase tracking-widest mb-1">
+                      <p className={`text-xs md:text-sm font-medium uppercase tracking-widest mb-1 ${isMuted ? 'text-red-400' : 'text-emerald-400'}`}>
                         {geminiState === 'connecting' ? 'Connecting...' : 
                          geminiState === 'connected' ? (
-                           isAiTalking ? 'AI Speaking' : 'Listening...'
+                           isMuted ? 'Muted' : (isAiTalking ? 'AI Speaking' : 'Listening...')
                          ) : 'Session Ended'}
                       </p>
                       <div className="text-lg md:text-xl text-white/90 font-light leading-snug line-clamp-2">

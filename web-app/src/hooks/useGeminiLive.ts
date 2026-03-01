@@ -31,6 +31,24 @@ export function useGeminiLive() {
   const setupDoneRef = useRef(false);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
 
+  const [isMuted, setIsMuted] = useState(false);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => !prev);
+  }, []);
+
+  // Keep refs updated for the audio processor callback
+  const isAiTalkingRef = useRef(isAiTalking);
+  const isMutedRef = useRef(isMuted);
+
+  useEffect(() => {
+    isAiTalkingRef.current = isAiTalking;
+  }, [isAiTalking]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
+
   const startAudioCapture = useCallback(() => {
     if (!streamRef.current || !captureCtxRef.current) return;
     const audioCtx = captureCtxRef.current;
@@ -48,7 +66,38 @@ export function useGeminiLive() {
       const rms = Math.sqrt(sum / inputData.length);
       setVolume(rms);
 
-      if (wsRef.current?.readyState !== WebSocket.OPEN || !setupDoneRef.current) return;
+      // If muted or not connected/ready, just return without sending audio
+      if (wsRef.current?.readyState !== WebSocket.OPEN || !setupDoneRef.current || isMutedRef.current) return;
+
+      // Basic VAD (Voice Activity Detection) - if user speaks loud enough, interrupt AI
+      if (rms > 0.05 && isAiTalkingRef.current) { // threshold might need tuning (0.01 - 0.1)
+        console.log("[GeminiLive] Client-side VAD detected user speech, sending clientContent to interrupt");
+        
+        // Force the client to send a message to interrupt the server's generation
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(
+                JSON.stringify({
+                    clientContent: {
+                        turns: [
+                            {
+                                role: "user",
+                                parts: [{ text: "Hold on, I want to say something." }]
+                            }
+                        ],
+                        turnComplete: true
+                    }
+                })
+            );
+        }
+        
+        // Stop current audio playback
+        activeSourcesRef.current.forEach((src) => {
+          try { src.stop(); } catch (err) {}
+        });
+        activeSourcesRef.current = [];
+        nextPlayTimeRef.current = 0;
+        setIsAiTalking(false);
+      }
       
       const pcm16 = new Int16Array(inputData.length);
       for (let i = 0; i < inputData.length; i++) {
@@ -67,10 +116,15 @@ export function useGeminiLive() {
           },
         })
       );
+      // We disable VAD loop dependency since it needs isAiTalking and isMuted refs to be up-to-date
+      // In a real app we'd use a ref for these to avoid recreating the processor
     };
 
     source.connect(processor);
     processor.connect(audioCtx.destination);
+    
+    // Save processor to ref to keep it from garbage collection
+    (window as any)._audioProcessor = processor;
   }, []);
 
   const playAudioChunk = useCallback((base64Audio: string) => {
@@ -265,6 +319,10 @@ export function useGeminiLive() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     captureCtxRef.current?.close();
     playbackCtxRef.current?.close();
+    if ((window as any)._audioProcessor) {
+        (window as any)._audioProcessor.disconnect();
+        (window as any)._audioProcessor = null;
+    }
     setState("disconnected");
   }, []);
 
@@ -274,5 +332,5 @@ export function useGeminiLive() {
     };
   }, [disconnect]);
 
-  return { state, error, transcript, connect, disconnect, isAiTalking, volume };
+  return { state, error, transcript, connect, disconnect, isAiTalking, volume, isMuted, toggleMute };
 }
