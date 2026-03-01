@@ -16,6 +16,7 @@ export default function StudioDashboard() {
   const [harvestedMemories, setHarvestedMemories] = useState<any[]>([]);
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
   const [patientName, setPatientName] = useState("");
+  const [savedPatientName, setSavedPatientName] = useState("");
   const [savingPatient, setSavingPatient] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -50,6 +51,7 @@ export default function StudioDashboard() {
       setHarvestedMemories(harvest.harvested || []);
       setFamilyMembers(family.members || []);
       setPatientName(patient.name || "");
+      setSavedPatientName(patient.name || "");
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -157,6 +159,7 @@ export default function StudioDashboard() {
         body: JSON.stringify({ name: patientName }),
       });
       if (res.ok) {
+        setSavedPatientName(patientName);
         flash("Patient profile updated!");
       } else {
         flash("Failed to save patient", "err");
@@ -217,7 +220,7 @@ export default function StudioDashboard() {
         <div className="flex items-center gap-4 text-sm">
           <div className="hidden sm:flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            Sarah&apos;s Frame is Active
+            {patientName ? `${patientName}'s Frame is Active` : "Magic Frame is Active"}
           </div>
           <div className="flex items-center gap-3">
             <span className="text-gray-600 font-medium hidden sm:inline">{session?.user?.name}</span>
@@ -254,10 +257,10 @@ export default function StudioDashboard() {
               />
               <button
                 onClick={handleSavePatient}
-                disabled={savingPatient}
+                disabled={savingPatient || patientName === savedPatientName}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
               >
-                {savingPatient ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save"}
+                {savingPatient ? <Loader2 className="w-5 h-5 animate-spin" /> : (patientName === savedPatientName && patientName !== "" ? "Saved ✓" : "Save")}
               </button>
             </div>
           </div>
