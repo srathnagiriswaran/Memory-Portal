@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { adminDb } from "@/lib/firebase-admin";
+import { isAuthorized } from "@/lib/api-auth";
 
 export async function POST(request: Request) {
   try {
+    if (!(await isAuthorized(request))) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'dummy_key' });
     const { transcript, photoId, caretakerName } = await request.json();
 

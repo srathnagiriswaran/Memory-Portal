@@ -5,6 +5,7 @@ import { useNoSleep } from "@/hooks/useNoSleep";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { AnimatePresence, motion } from "framer-motion";
 import { Power, MessageCircleHeart, Expand, Mic, MicOff, Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 interface Memory {
   id: string;
@@ -26,6 +27,7 @@ FAMILY KNOWLEDGE GRAPH:
 `;
 
 export default function MagicFrame() {
+  const searchParams = useSearchParams();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActiveSession, setIsActiveSession] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -33,8 +35,23 @@ export default function MagicFrame() {
   const [patientName, setPatientName] = useState("");
   const [photoCatalogText, setPhotoCatalogText] = useState("");
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [deviceToken, setDeviceToken] = useState<string | null>(null);
+
+  // Initialize the device token on load
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get("token");
+    if (tokenFromUrl) {
+      localStorage.setItem("frame_token", tokenFromUrl);
+      setDeviceToken(tokenFromUrl);
+      // Clean up the URL so the token isn't visible to anyone looking over their shoulder
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      setDeviceToken(localStorage.getItem("frame_token"));
+    }
+  }, [searchParams]);
 
   const onChangePhoto = useCallback((photoId: string) => {
+
     console.log("🔥 AI TRIGGERED TOOL: changePhoto for ID:", photoId);
     
     // Sanitize photoId just in case the model includes brackets or spaces
@@ -56,14 +73,29 @@ export default function MagicFrame() {
 
   // Fetch active memories and family graph
   useEffect(() => {
+    if (!deviceToken && typeof window !== 'undefined' && !localStorage.getItem("frame_token")) {
+      // Don't fetch if there's no token and we're not waiting for one from the URL
+      return;
+    }
+
+    const headers = {
+      'Authorization': `Bearer ${deviceToken || localStorage.getItem("frame_token")}`
+    };
+
     const fetchData = async () => {
       try {
         const [memRes, familyRes, patientRes] = await Promise.all([
-          fetch("/api/memories"),
-          fetch("/api/family-graph"),
-          fetch("/api/patient")
+          fetch("/api/memories", { headers }),
+          fetch("/api/family-graph", { headers }),
+          fetch("/api/patient", { headers })
         ]);
         
+        if (memRes.status === 401) {
+          console.error("Unauthorized: Invalid device token");
+          // Optionally handle unauthorized state in UI
+          return;
+        }
+
         const data = await memRes.json();
         if (data.memories && data.memories.length > 0) {
           setMemories(data.memories);
@@ -165,7 +197,10 @@ export default function MagicFrame() {
       console.log("Triggering Memory Harvest with transcript length:", finalTranscript.length);
       await fetch('/api/harvest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${deviceToken || localStorage.getItem("frame_token")}` 
+        },
         body: JSON.stringify({
           transcript: finalTranscript,
           photoId: currentMemory?.id,

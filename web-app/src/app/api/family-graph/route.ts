@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { isAuthorized } from "@/lib/api-auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    if (!(await isAuthorized(request))) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const snapshot = await adminDb.collection("family_graph").get();
     const members = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
     return NextResponse.json({ members });
@@ -18,6 +23,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!(await isAuthorized(request))) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { name, relationship, details } = await request.json();
     if (!name || !relationship) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -39,6 +48,10 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    if (!(await isAuthorized(request))) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });

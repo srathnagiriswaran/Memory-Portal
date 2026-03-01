@@ -27,15 +27,33 @@ export default function Home() {
 
           <Link 
             href="/frame"
-            className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+            className="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
           >
-            <div className="bg-gray-100 p-3 rounded-lg group-hover:bg-white group-hover:text-emerald-600 transition-colors">
-              <MonitorPlay className="w-6 h-6" />
+            <div className="flex items-center gap-4">
+              <div className="bg-gray-100 p-3 rounded-lg group-hover:bg-white group-hover:text-emerald-600 transition-colors">
+                <MonitorPlay className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <h2 className="font-semibold text-gray-900">Magic Frame</h2>
+                <p className="text-sm text-gray-500">Launch patient display</p>
+              </div>
             </div>
-            <div className="text-left">
-              <h2 className="font-semibold text-gray-900">Magic Frame</h2>
-              <p className="text-sm text-gray-500">Launch patient display</p>
-            </div>
+            
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                // When caregiver clicks this button, it copies the secure link to the clipboard
+                // For a real production app, the token should be fetched securely, not hardcoded.
+                // For this implementation, we will assume a static FRAME_SECRET_KEY is used.
+                const token = process.env.NEXT_PUBLIC_FRAME_SECRET_KEY || "fallback_secret_123";
+                const url = `${window.location.origin}/frame?token=${token}`;
+                navigator.clipboard.writeText(url);
+                alert("Secure Magic Frame link copied to clipboard! Open this link on the patient's tablet.");
+              }}
+              className="px-3 py-1.5 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors z-10"
+            >
+              Copy Link
+            </button>
           </Link>
         </div>
       </div>
