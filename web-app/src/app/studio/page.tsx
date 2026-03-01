@@ -14,28 +14,35 @@ export default function StudioDashboard() {
   const [pendingMemories, setPendingMemories] = useState<MemoryItem[]>([]);
   const [vaultMemories, setVaultMemories] = useState<any[]>([]);
   const [harvestedMemories, setHarvestedMemories] = useState<any[]>([]);
+  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [newFamilyMember, setNewFamilyMember] = useState({ name: '', relationship: '', details: '' });
+  const [addingFamily, setAddingFamily] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [pendingRes, activeRes, harvestRes] = await Promise.all([
+      const [pendingRes, activeRes, harvestRes, familyRes] = await Promise.all([
         fetch("/api/memories?status=pending_voice"),
         fetch("/api/memories?status=active"),
         fetch("/api/harvested"),
+        fetch("/api/family-graph"),
       ]);
 
       const pending = pendingRes.ok ? await pendingRes.json() : { memories: [] };
       const active = activeRes.ok ? await activeRes.json() : { memories: [] };
       const harvest = harvestRes.ok ? await harvestRes.json() : { harvested: [] };
+      const family = familyRes.ok ? await familyRes.json() : { members: [] };
 
       setPendingMemories(pending.memories || []);
       setVaultMemories(active.memories || []);
       setHarvestedMemories(harvest.harvested || []);
+      setFamilyMembers(family.members || []);
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -98,6 +105,41 @@ export default function StudioDashboard() {
       setHarvestedMemories((prev) => prev.filter((m) => m.id !== id));
     } catch (err) {
       console.error("Error updating memory:", err);
+    }
+  };
+
+  const handleAddFamilyMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddingFamily(true);
+    try {
+      const res = await fetch("/api/family-graph", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newFamilyMember),
+      });
+      if (res.ok) {
+        setNewFamilyMember({ name: '', relationship: '', details: '' });
+        fetchAll(); // Refresh the list
+        flash("Family member added successfully");
+      } else {
+        flash("Failed to add family member", "err");
+      }
+    } catch (err) {
+      console.error("Error adding family member:", err);
+      flash("Error adding family member", "err");
+    } finally {
+      setAddingFamily(false);
+    }
+  };
+
+  const handleDeleteFamilyMember = async (id: string) => {
+    try {
+      await fetch(`/api/family-graph?id=${id}`, { method: "DELETE" });
+      setFamilyMembers(prev => prev.filter(m => m.id !== id));
+      flash("Removed family member");
+    } catch (err) {
+      console.error("Error deleting family member:", err);
+      flash("Failed to remove", "err");
     }
   };
 
@@ -194,6 +236,81 @@ export default function StudioDashboard() {
                       Discard
                     </button>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Family Knowledge Graph */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-medium text-gray-800">Family Knowledge Base</h2>
+            <span className="text-sm text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">
+              {familyMembers.length} Entries
+            </span>
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+            <h3 className="font-medium text-gray-900 mb-4">Add New Context</h3>
+            <form onSubmit={handleAddFamilyMember} className="flex flex-col sm:flex-row gap-4">
+              <input
+                type="text"
+                placeholder="Name (e.g. Sarah)"
+                className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                value={newFamilyMember.name}
+                onChange={(e) => setNewFamilyMember({ ...newFamilyMember, name: e.target.value })}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Relationship (e.g. Daughter)"
+                className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                value={newFamilyMember.relationship}
+                onChange={(e) => setNewFamilyMember({ ...newFamilyMember, relationship: e.target.value })}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Details (e.g. loves gardening)"
+                className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                value={newFamilyMember.details}
+                onChange={(e) => setNewFamilyMember({ ...newFamilyMember, details: e.target.value })}
+              />
+              <button
+                type="submit"
+                disabled={addingFamily}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {addingFamily ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Add Context"}
+              </button>
+            </form>
+          </div>
+
+          {loading ? (
+            <div className="py-12 flex justify-center items-center text-gray-400">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : familyMembers.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm text-gray-500">
+              No family members added yet. Add some context to help the AI remember!
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {familyMembers.map((member) => (
+                <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col relative group">
+                  <button 
+                    onClick={() => handleDeleteFamilyMember(member.id)}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <h3 className="font-semibold text-gray-900 text-lg">{member.name}</h3>
+                  <p className="text-sm font-medium text-emerald-600 mb-2">{member.relationship}</p>
+                  {member.details && (
+                    <p className="text-sm text-gray-600 italic bg-gray-50 p-3 rounded-lg mt-auto">"{member.details}"</p>
+                  )}
                 </div>
               ))}
             </div>

@@ -29,6 +29,7 @@ export default function MagicFrame() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActiveSession, setIsActiveSession] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [familyGraphText, setFamilyGraphText] = useState("");
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   const onChangePhoto = useCallback((theme: string) => {
@@ -59,12 +60,16 @@ export default function MagicFrame() {
   const { isAwake, enable } = useNoSleep();
   const { state: geminiState, error: geminiError, transcript, connect, disconnect, isAiTalking, volume, isMuted, toggleMute } = useGeminiLive({ onChangePhoto });
 
-  // Fetch active memories
+  // Fetch active memories and family graph
   useEffect(() => {
-    const fetchMemories = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("/api/memories");
-        const data = await res.json();
+        const [memRes, familyRes] = await Promise.all([
+          fetch("/api/memories"),
+          fetch("/api/family-graph")
+        ]);
+        
+        const data = await memRes.json();
         if (data.memories && data.memories.length > 0) {
           setMemories(data.memories);
         } else {
@@ -74,11 +79,19 @@ export default function MagicFrame() {
             { id: "2", photoUrl: "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?q=80&w=2076&auto=format&fit=crop", caretakerName: "System", transcription: "Another beautiful nature scene." }
           ]);
         }
+
+        const familyData = await familyRes.json();
+        if (familyData.members && familyData.members.length > 0) {
+          const graphText = familyData.members.map((m: any) => `- ${m.name} (${m.relationship}): ${m.details || 'No additional details'}`).join('\n');
+          setFamilyGraphText(`FAMILY KNOWLEDGE GRAPH:\n${graphText}`);
+        } else {
+          setFamilyGraphText(FAMILY_KNOWLEDGE_GRAPH); // Fallback to mock
+        }
       } catch (err) {
-        console.error("Failed to fetch memories:", err);
+        console.error("Failed to fetch data:", err);
       }
     };
-    fetchMemories();
+    fetchData();
   }, []);
 
   // Cycle through photos in idle mode
@@ -118,7 +131,7 @@ export default function MagicFrame() {
       : '';
       
     const context = `
-      ${FAMILY_KNOWLEDGE_GRAPH}
+      ${familyGraphText}
       
       This photo was added by ${currentMemory?.caretakerName || "a loved one"}. They left this note about it: "${currentMemory?.transcription || "It's a beautiful memory."}"${facts}
     `.trim();
