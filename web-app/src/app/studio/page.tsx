@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Mic, CheckCircle2, Image as ImageIcon, Settings, Heart, LogOut,
-  Loader2, Upload, Plus, X,
+  Loader2, Upload, Plus, X, MonitorPlay,
 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { PhotoCard, MemoryItem } from "@/components/PhotoCard";
@@ -209,6 +209,20 @@ export default function StudioDashboard() {
     );
   }
 
+  const generateFrameLink = async () => {
+    try {
+      const res = await fetch("/api/frame-setup");
+      if (!res.ok) throw new Error("Failed to get frame token");
+      const data = await res.json();
+      const url = `${window.location.origin}/frame?token=${data.token}`;
+      navigator.clipboard.writeText(url);
+      flash("Secure Magic Frame link copied to clipboard! Open it on the tablet.", "ok");
+    } catch (err) {
+      console.error(err);
+      flash("Failed to generate Magic Frame link.", "err");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24">
       {/* Header */}
@@ -261,6 +275,25 @@ export default function StudioDashboard() {
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 {savingPatient ? <Loader2 className="w-5 h-5 animate-spin" /> : (patientName === savedPatientName && patientName !== "" ? "Saved ✓" : "Save")}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Magic Frame Device Setup */}
+        <section>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-medium text-gray-900 mb-1">Magic Frame Setup</h2>
+              <p className="text-sm text-gray-500">Generate a secure, one-time link to authorize the patient&apos;s tablet.</p>
+            </div>
+            <div className="flex w-full sm:w-auto gap-2">
+              <button
+                onClick={generateFrameLink}
+                className="bg-white border-2 border-emerald-100 hover:bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+              >
+                <MonitorPlay className="w-4 h-4" />
+                Copy Setup Link
               </button>
             </div>
           </div>

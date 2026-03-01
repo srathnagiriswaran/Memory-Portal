@@ -26,7 +26,7 @@ Because the system serves two entirely different user contexts from the same bac
 2.  **Magic Frame (Device Authenticated):**
     *   The patient device cannot use standard login flows.
     *   Protected by a **Device Token (Magic Link)**.
-    *   The Caregiver generates a secure link (`/frame?token=xyz`). The Magic Frame app consumes this token, saves it to `localStorage`, and strips it from the URL.
+    *   The Caregiver logs into the Caretaker Studio and generates a secure link (`/frame?token=xyz`) from a protected backend API. The Magic Frame app consumes this token, saves it to `localStorage`, and strips it from the URL.
     *   The Frame attaches this token as a `Bearer` token on all API requests (fetching photos, sending harvest transcripts).
     *   *Note: The Gemini API Key is never exposed to the frontend. The Frame requests the key securely from the backend before establishing its WebSocket connection.*
 
