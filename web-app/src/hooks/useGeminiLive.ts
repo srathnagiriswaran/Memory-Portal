@@ -320,18 +320,12 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                     const newContext = onChangePhotoRef.current(call.args?.photoId || "");
                     if (ws.readyState === WebSocket.OPEN) {
                       ws.send(JSON.stringify({
-                        clientContent: {
-                          turns: [{
-                            role: "user",
-                            parts: [{
-                              functionResponse: {
-                                name: "changePhoto",
-                                id: call.id,
-                                response: { result: newContext }
-                              }
-                            }]
-                          }],
-                          turnComplete: true
+                        toolResponse: {
+                          functionResponses: [{
+                            id: call.id,
+                            name: "changePhoto",
+                            response: { result: newContext }
+                          }]
                         }
                       }));
                     }
@@ -349,18 +343,12 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                     const newContext = onChangePhotoRef.current(call.args?.photoId || "");
                     if (ws.readyState === WebSocket.OPEN) {
                       ws.send(JSON.stringify({
-                        clientContent: {
-                          turns: [{
-                            role: "user",
-                            parts: [{
-                              functionResponse: {
-                                name: "changePhoto",
-                                id: call.id,
-                                response: { result: newContext }
-                              }
-                            }]
-                          }],
-                          turnComplete: true
+                        toolResponse: {
+                          functionResponses: [{
+                            id: call.id,
+                            name: "changePhoto",
+                            response: { result: newContext }
+                          }]
                         }
                       }));
                     }
@@ -377,20 +365,13 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                   if (name === "changePhoto" && onChangePhotoRef.current) {
                     const newContext = onChangePhotoRef.current(args.photoId || "");
                     if (ws.readyState === WebSocket.OPEN) {
-                      // Workaround: Send functionResponse via clientContent instead of toolResponse
                       ws.send(JSON.stringify({
-                        clientContent: {
-                          turns: [{
-                            role: "user",
-                            parts: [{
-                              functionResponse: {
-                                name: "changePhoto",
-                                id: id,
-                                response: { result: newContext }
-                              }
-                            }]
-                          }],
-                          turnComplete: true
+                        toolResponse: {
+                          functionResponses: [{
+                            id: id,
+                            name: "changePhoto",
+                            response: { result: newContext }
+                          }]
                         }
                       }));
                     }
