@@ -1,7 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import { Heart, MonitorPlay } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [hasToken, setHasToken] = useState(true); // Default true to prevent hydration mismatch flash
+
+  useEffect(() => {
+    // Check if the device is already authenticated as a frame
+    setHasToken(!!localStorage.getItem("frame_token"));
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 font-sans">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-lg border border-gray-100 p-8 text-center">
@@ -39,21 +49,23 @@ export default function Home() {
               </div>
             </div>
             
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                // When caregiver clicks this button, it copies the secure link to the clipboard
-                // For a real production app, the token should be fetched securely, not hardcoded.
-                // For this implementation, we will assume a static FRAME_SECRET_KEY is used.
-                const token = process.env.NEXT_PUBLIC_FRAME_SECRET_KEY || "fallback_secret_123";
-                const url = `${window.location.origin}/frame?token=${token}`;
-                navigator.clipboard.writeText(url);
-                alert("Secure Magic Frame link copied to clipboard! Open this link on the patient's tablet.");
-              }}
-              className="px-3 py-1.5 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors z-10"
-            >
-              Copy Link
-            </button>
+            {!hasToken && (
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  // When caregiver clicks this button, it copies the secure link to the clipboard
+                  // For a real production app, the token should be fetched securely, not hardcoded.
+                  // For this implementation, we will assume a static FRAME_SECRET_KEY is used.
+                  const token = process.env.NEXT_PUBLIC_FRAME_SECRET_KEY || "fallback_secret_123";
+                  const url = `${window.location.origin}/frame?token=${token}`;
+                  navigator.clipboard.writeText(url);
+                  alert("Secure Magic Frame link copied to clipboard! Open this link on the patient's tablet.");
+                }}
+                className="px-3 py-1.5 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors z-10"
+              >
+                Copy Link
+              </button>
+            )}
           </Link>
         </div>
       </div>
