@@ -57,3 +57,30 @@ export async function DELETE(request: Request) {
     );
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    if (!(await isAuthorized(request))) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id, learnedFacts } = await request.json();
+
+    if (!id || !Array.isArray(learnedFacts)) {
+      return NextResponse.json({ error: "Memory ID and learnedFacts array are required" }, { status: 400 });
+    }
+
+    await adminDb.collection("memories").doc(id).update({
+      learnedFacts
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Update Memory Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to update memory" },
+      { status: 500 }
+    );
+  }
+}
+

@@ -210,6 +210,34 @@ export default function StudioDashboard() {
     }
   };
 
+  const handleDeleteFact = async (memoryId: string, factIndex: number) => {
+    if (!confirm("Are you sure you want to delete this insight? It will no longer be used as context for the AI.")) return;
+    try {
+      const memory = vaultMemories.find(m => m.id === memoryId);
+      if (!memory) return;
+      
+      const updatedFacts = memory.learnedFacts.filter((_: any, idx: number) => idx !== factIndex);
+      
+      const res = await fetch('/api/memories', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: memoryId, learnedFacts: updatedFacts })
+      });
+      
+      if (res.ok) {
+        setVaultMemories(prev => prev.map(m => 
+          m.id === memoryId ? { ...m, learnedFacts: updatedFacts } : m
+        ));
+        flash("Insight removed successfully");
+      } else {
+        flash("Failed to remove insight", "err");
+      }
+    } catch (err) {
+      console.error("Error deleting fact:", err);
+      flash("Failed to remove insight", "err");
+    }
+  };
+
   const startEditingMemory = (memory: any) => {
     setEditingMemoryId(memory.id);
     setEditMemoryText(memory.transcription || "");
@@ -652,12 +680,15 @@ export default function StudioDashboard() {
 
         {/* Active Vault */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-medium text-gray-800">Active Vault</h2>
             <span className="text-sm text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">
               {vaultMemories.length} Active in Magic Frame
             </span>
           </div>
+          <p className="text-sm text-gray-500 mb-4">
+            These photos are currently in the Magic Frame rotation. <b>Patient Memories</b> attached to these photos are used by the AI as context to personalize future conversations. You can delete any fact that you don't want the AI to mention again.
+          </p>
 
           {loading ? (
             <div className="py-12 flex justify-center items-center text-gray-400">
@@ -724,9 +755,19 @@ export default function StudioDashboard() {
                         {memory.learnedFacts && memory.learnedFacts.length > 0 && (
                           <div className="mt-2 space-y-1">
                             <span className="text-xs font-medium text-emerald-700">Patient Memories:</span>
-                            <ul className="text-xs text-gray-500 list-disc list-inside">
+                            <ul className="text-xs text-gray-500 flex flex-col gap-1">
                               {memory.learnedFacts.map((fact: string, idx: number) => (
-                                <li key={idx} className="line-clamp-2">{fact}</li>
+                                <li key={idx} className="flex items-start gap-1 group/fact">
+                                  <span className="text-emerald-500 mt-0.5">•</span>
+                                  <span className="line-clamp-2 flex-1">{fact}</span>
+                                  <button
+                                    onClick={() => handleDeleteFact(memory.id, idx)}
+                                    className="opacity-0 group-hover/fact:opacity-100 text-gray-400 hover:text-red-500 transition-opacity p-0.5"
+                                    title="Remove this insight"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </li>
                               ))}
                             </ul>
                           </div>
