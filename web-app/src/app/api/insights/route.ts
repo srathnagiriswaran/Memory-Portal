@@ -32,7 +32,7 @@ export async function GET() {
 Session ${i + 1} (${new Date(m.createdAt).toLocaleDateString()}):
 Emotional Summary: ${m.emotionalSummary || "None"}
 Facts Extracted: ${m.facts ? m.facts.join(", ") : "None"}
-    `).trim();
+    `).join('\n').trim();
 
     const prompt = `
       You are an expert Gerontology/Caregiver Advisor. Review the following recent session summaries of an older adult interacting with an AI companion.
