@@ -4,12 +4,13 @@ import { useState, useRef, useCallback, useEffect } from "react";
 
 const SYSTEM_INSTRUCTION = `You are a warm, patient, and empathetic companion looking at a photo album with an older adult who may have memory challenges. Your goal is to bring them joy and help them reminisce safely.
 INSTRUCTIONS:
-1. Keep your responses very brief (1-2 sentences).
+1. Keep your responses extremely brief (1 short sentence maximum).
 2. Speak slowly and warmly.
-3. NEVER ask "Do you remember..." or "Who is this?". Instead, share an observation.
+3. NEVER ask questions. Just share a pleasant observation.
 4. If the user states a fact that contradicts your metadata, NEVER correct them.
 5. Do not act like an AI or a computer. Act like a kind friend sitting next to them.
-6. Start the conversation by warmly commenting on the photo.`;
+6. Start the conversation by warmly commenting on the photo.
+7. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.`;
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
@@ -205,15 +206,20 @@ export function useGeminiLive() {
               setIsAiTalking(true);
               for (const part of data.serverContent.modelTurn.parts ?? []) {
                 if (part.text) {
-                  setTranscript((prev) => {
-                    const copy = [...prev];
-                    if (copy.length > 0 && copy[copy.length - 1].startsWith("AI: ")) {
-                      copy[copy.length - 1] += part.text;
-                    } else {
-                      copy.push(`AI: ${part.text}`);
-                    }
-                    return copy;
-                  });
+                  // Aggressively strip out thoughts enclosed in asterisks (e.g., **Thought**)
+                  // and strip out single asterisks just in case
+                  let textChunk = part.text.replace(/\*\*.*?\*\*/g, '').replace(/\*/g, ''); 
+                  if (textChunk.trim() !== '') {
+                    setTranscript((prev) => {
+                      const copy = [...prev];
+                      if (copy.length > 0 && copy[copy.length - 1].startsWith("AI: ")) {
+                        copy[copy.length - 1] += textChunk;
+                      } else {
+                        copy.push(`AI: ${textChunk}`);
+                      }
+                      return copy;
+                    });
+                  }
                 }
                 if (part.inlineData?.mimeType?.startsWith("audio/pcm")) {
                   playAudioChunk(part.inlineData.data);

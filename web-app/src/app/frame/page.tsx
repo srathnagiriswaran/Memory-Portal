@@ -150,69 +150,85 @@ export default function MagicFrame() {
           </AnimatePresence>
 
           {/* Foreground UI Layer */}
-          <div className="z-10 absolute inset-0 flex flex-col p-8">
-            <div className="flex-1 flex items-center justify-center">
-              {isActiveSession ? (
-                <div className="bg-black/40 backdrop-blur-xl p-12 rounded-3xl border border-white/20 text-center max-w-2xl animate-in fade-in zoom-in duration-500">
-                  <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-                     {geminiState === 'connecting' ? (
-                       <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
-                     ) : geminiState === 'connected' ? (
-                       <>
-                         {isAiTalking ? (
-                           <div className="absolute inset-0 bg-emerald-500/40 rounded-full animate-ping" />
-                         ) : (
-                           <div 
-                             className="absolute bg-emerald-500/30 rounded-full transition-all duration-200 ease-out"
-                             style={{ 
-                               width: `${100 + Math.min(volume * 500, 100)}%`,
-                               height: `${100 + Math.min(volume * 500, 100)}%`
-                             }} 
-                           />
-                         )}
-                         <div className={`w-16 h-16 rounded-full flex items-center justify-center z-10 transition-colors ${isAiTalking ? 'bg-emerald-400' : 'bg-emerald-600'}`}>
-                           <Mic className={`w-8 h-8 text-white ${isAiTalking ? 'opacity-50' : 'opacity-100'}`} />
-                         </div>
-                       </>
-                     ) : (
-                       <Mic className="w-10 h-10 text-red-400" />
-                     )}
+          <div className="z-10 absolute inset-0 flex flex-col justify-end p-8 pointer-events-none">
+            <AnimatePresence>
+              {isActiveSession && (
+                <motion.div 
+                  initial={{ y: 100, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 100, opacity: 0 }}
+                  className="w-full max-w-3xl mx-auto pointer-events-auto pb-4"
+                >
+                  <div className="bg-black/40 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-white/20 shadow-2xl flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                    {/* Left: Dynamic Mic / Status Indicator */}
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 flex items-center justify-center">
+                      {geminiState === 'connecting' ? (
+                        <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                          <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-emerald-400 animate-spin" />
+                        </div>
+                      ) : geminiState === 'connected' ? (
+                        <>
+                          {isAiTalking ? (
+                            <div className="absolute inset-0 bg-emerald-500/40 rounded-full animate-ping" />
+                          ) : (
+                            <div 
+                              className="absolute bg-emerald-500/30 rounded-full transition-all duration-200 ease-out"
+                              style={{ 
+                                width: `${100 + Math.min(volume * 500, 100)}%`,
+                                height: `${100 + Math.min(volume * 500, 100)}%`
+                              }} 
+                            />
+                          )}
+                          <div className={`relative w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center z-10 transition-colors shadow-lg ${isAiTalking ? 'bg-emerald-400' : 'bg-emerald-600'}`}>
+                            <Mic className={`w-6 h-6 md:w-8 md:h-8 text-white ${isAiTalking ? 'opacity-80' : 'opacity-100'}`} />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-12 h-12 md:w-16 md:h-16 bg-red-500/20 rounded-full flex items-center justify-center">
+                          <Mic className="w-6 h-6 md:w-8 md:h-8 text-red-400" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Middle: Transcript & Status Text */}
+                    <div className="flex-1 min-w-0 text-center md:text-left">
+                      <p className="text-xs md:text-sm font-medium text-emerald-400 uppercase tracking-widest mb-1">
+                        {geminiState === 'connecting' ? 'Connecting...' : 
+                         geminiState === 'connected' ? (
+                           isAiTalking ? 'AI Speaking' : 'Listening...'
+                         ) : 'Session Ended'}
+                      </p>
+                      <div className="text-lg md:text-xl text-white/90 font-light leading-snug line-clamp-2">
+                        {geminiError ? (
+                          <span className="text-red-400">{geminiError}</span>
+                        ) : transcript.length > 0 ? (
+                          <span className={transcript[transcript.length - 1].startsWith("AI:") ? "text-white" : "text-white/60"}>
+                            {transcript[transcript.length - 1].replace("AI: ", "")}
+                          </span>
+                        ) : geminiState === "connected" ? (
+                          <span className="animate-pulse text-white/40">Waiting for response...</span>
+                        ) : (
+                          <span className="text-white/40">Getting ready...</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: End Session Button */}
+                    <button 
+                      onClick={handleEndSession}
+                      className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-white/10 hover:bg-red-500/20 hover:text-red-400 rounded-full flex items-center justify-center transition-colors text-white/60 border border-white/10 mt-2 md:mt-0"
+                      title="End Session"
+                    >
+                      <Power className="w-5 h-5 md:w-6 md:h-6" />
+                    </button>
                   </div>
-                  <h2 className="text-4xl font-light mb-4">
-                    {geminiState === 'connecting' ? 'Connecting...' : 
-                     geminiState === 'connected' ? (
-                       isAiTalking ? 'AI is speaking...' : 'Listening...'
-                     ) : 
-                     'Session Ended'}
-                  </h2>
-                  <div className="text-2xl text-white/80 font-light leading-relaxed max-h-48 overflow-y-auto">
-                    {geminiError ? (
-                      <span className="text-red-400">{geminiError}</span>
-                    ) : transcript.length > 0 ? (
-                      transcript.slice(-3).map((line, i) => (
-                        <p key={i} className={`mb-1 ${line.startsWith("AI:") ? "text-emerald-300" : "text-white/60"}`}>
-                          {line}
-                        </p>
-                      ))
-                    ) : geminiState === "connected" ? (
-                      <p className="animate-pulse">Listening...</p>
-                    ) : (
-                      <p>&ldquo;{memories[currentPhotoIndex]?.transcription || "Getting ready..."}&rdquo;</p>
-                    )}
-                  </div>
-                  <button 
-                    onClick={handleEndSession}
-                    className="mt-12 px-8 py-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-                  >
-                    End Session
-                  </button>
-                </div>
-              ) : null}
-            </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Persistent Reminisce Button for Idle Mode */}
             {!isActiveSession && memories.length > 0 && (
-              <div className="flex justify-center pb-8">
+              <div className="flex justify-center pb-8 pointer-events-auto">
                 <button
                   onClick={handleReminisce}
                   className="group flex items-center gap-4 bg-white/10 hover:bg-white/20 backdrop-blur-lg border border-white/20 px-8 py-5 rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
