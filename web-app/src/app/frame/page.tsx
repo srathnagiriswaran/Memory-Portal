@@ -177,7 +177,7 @@ export default function MagicFrame() {
       START OF SESSION
       =============================
       CURRENTLY DISPLAYED PHOTO [ID: ${currentMemory?.id}]
-      This photo was added by ${currentMemory?.caretakerName || "a loved one"}. They left this note about it: "${currentMemory?.transcription || "It's a beautiful memory."}"${facts}
+      Background context about this photo: "${currentMemory?.transcription || "It's a beautiful memory."}"${facts}
     `.trim();
     
     await connect(context);

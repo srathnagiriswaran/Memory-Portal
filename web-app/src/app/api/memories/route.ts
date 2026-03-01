@@ -32,3 +32,28 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    if (!(await isAuthorized(request))) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Memory ID is required" }, { status: 400 });
+    }
+
+    await adminDb.collection("memories").doc(id).delete();
+    
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Delete Memory Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to delete memory" },
+      { status: 500 }
+    );
+  }
+}

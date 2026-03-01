@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Mic, CheckCircle2, Image as ImageIcon, Settings, Heart, LogOut,
-  Loader2, Upload, Plus, X, MonitorPlay,
+  Loader2, Upload, Plus, X, MonitorPlay, Trash2
 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { PhotoCard, MemoryItem } from "@/components/PhotoCard";
@@ -180,6 +180,22 @@ export default function StudioDashboard() {
     } catch (err) {
       console.error("Error deleting family member:", err);
       flash("Failed to remove", "err");
+    }
+  };
+
+  const handleDeleteMemory = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this memory from the Magic Frame?")) return;
+    try {
+      const res = await fetch(`/api/memories?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setVaultMemories(prev => prev.filter(m => m.id !== id));
+        flash("Memory deleted");
+      } else {
+        flash("Failed to delete memory", "err");
+      }
+    } catch (err) {
+      console.error("Error deleting memory:", err);
+      flash("Failed to delete memory", "err");
     }
   };
 
@@ -534,13 +550,20 @@ export default function StudioDashboard() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {vaultMemories.map((memory) => (
-                <div key={memory.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <div key={memory.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col group">
                   <div className="h-32 bg-gray-200 relative">
                     <img src={memory.photoUrl} alt="Vault memory" className="w-full h-full object-cover" />
                     <div className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-md text-white text-xs px-2 py-1 rounded flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
                       Active
                     </div>
+                    <button 
+                      onClick={() => handleDeleteMemory(memory.id)}
+                      className="absolute top-2 right-2 bg-red-500/90 hover:bg-red-600 backdrop-blur-md text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete Memory"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                   <div className="p-4 flex flex-col gap-2">
                     <p className="text-sm text-gray-600 line-clamp-3 italic">&quot;{memory.transcription}&quot;</p>
