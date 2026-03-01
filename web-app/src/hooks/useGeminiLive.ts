@@ -373,19 +373,15 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                   }));
                 }
                 
-                if (activeSourcesRef.current.length === 0) {
-                  onEndSessionRef.current();
-                } else {
-                  pendingEndSessionRef.current = true;
-                  // Failsafe: if audio doesn't finish cleanly, force end the session after 10 seconds
-                  setTimeout(() => {
-                    if (pendingEndSessionRef.current && onEndSessionRef.current) {
-                      console.warn("[GeminiLive] Failsafe: audio playback stuck, forcing session end.");
-                      pendingEndSessionRef.current = false;
-                      onEndSessionRef.current();
-                    }
-                  }, 10000);
-                }
+                pendingEndSessionRef.current = true;
+                // Failsafe: if audio doesn't finish cleanly or no audio is sent, force end the session after 10 seconds
+                setTimeout(() => {
+                  if (pendingEndSessionRef.current && onEndSessionRef.current) {
+                    console.warn("[GeminiLive] Failsafe: audio playback stuck or no audio received, forcing session end.");
+                    pendingEndSessionRef.current = false;
+                    onEndSessionRef.current();
+                  }
+                }, 10000);
               }
             };
 
@@ -443,6 +439,11 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
               console.log("[GeminiLive] Model turn complete");
               if (activeSourcesRef.current.length === 0) {
                 setIsAiTalking(false);
+                if (pendingEndSessionRef.current && onEndSessionRef.current) {
+                  console.log("[GeminiLive] Ending session gracefully after turn complete.");
+                  pendingEndSessionRef.current = false;
+                  onEndSessionRef.current();
+                }
               }
             }
           } catch (err) {
