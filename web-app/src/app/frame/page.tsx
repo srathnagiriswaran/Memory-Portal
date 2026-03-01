@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNoSleep } from "@/hooks/useNoSleep";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { AnimatePresence, motion } from "framer-motion";
