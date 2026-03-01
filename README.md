@@ -25,8 +25,21 @@ Memory Portal isn't just a technical achievement; it's designed to create magica
 *   **🌱 AI Memory Harvesting:** The system learns, grows, and remembers. After every chat, a background Gemini model quietly distills new facts and emotional insights from the transcript. It automatically builds a richer, long-term memory graph so the AI remembers what the loved one shared for their next session.
 *   **💡 Actionable Caregiver Insights:** Families don't just get raw transcripts; they get peace of mind. The Caretaker Studio provides a beautiful dashboard summarizing their loved one's overall mood, current topics of fixation, and AI-driven suggestions for what specific photos to upload next to spark joy.
 *   **🎙️ Multi-Modal Family Vault:** Caregivers don't have to type long paragraphs. They can simply speak into their phones to drop voice notes on photos (powered by GCP Speech-to-Text). This instantly anchors the image with deep, personal context (names, relationships, inside jokes) for the AI to weave into conversation.
-*   **🤝 Barge-In Ready & Empathetic:** Powered by the Gemini Live WebSocket API (`gemini-2.5-flash-native-audio-latest`), the AI can be interrupted naturally. It stops, listens, and responds just like a human. Strict anti-hallucination and positivity guardrails guarantee every interaction is safe, grounded, and uplifting.
+*   **🤝 Barge-In Ready & Empathetic:** The AI can be interrupted naturally. It stops, listens, and responds just like a human. Strict anti-hallucination and positivity guardrails guarantee every interaction is safe, grounded, and uplifting.
 *   **👋 Graceful Session Management:** The AI is trained to recognize conversational closing cues (e.g., "I'm tired," "goodbye") and will autonomously invoke an `endSession` tool to naturally say farewell and transition the frame back to its quiet, ambient state.
+
+---
+
+## ⚙️ Under the Hood: Technical Features
+
+Memory Portal is engineered to meet the strict demands of real-time, interruptible AI while maintaining robust security.
+
+*   **⚡ True Live Agent via WebSockets:** Powered directly by the Gemini Live WebSocket API (`gemini-2.5-flash-native-audio-latest`), ensuring the low-latency, full-duplex communication required for natural "barge-in" interruptions. 
+*   **☁️ 100% Serverless Cloud-Native:** The entire infrastructure—Next.js frontend/API, Firestore database, and Firebase Storage—is designed to run natively and auto-scale on Google Cloud Platform (target deployment: Cloud Run).
+*   **🔐 Dual-Authentication Architecture:** Implements a strict security boundary using NextAuth.js (Google OAuth) for the Caretaker Studio, and secure, zero-trust, rotating Device Tokens (Magic Links) for the patient-facing Magic Frame.
+*   **🤖 Chained AI Pipeline:** Uses a dual-model approach: Gemini Live API handles the real-time, low-latency conversation, while a secondary Gemini 2.5 Flash model runs asynchronously post-session to extract structured JSON data (Memory Harvesting and Insights).
+*   **🎤 Seamless Transcriptions:** Integrated with Google Cloud Speech-to-Text to accurately transcribe caregiver voice notes into semantic context for the database.
+*   **🛡️ Zero-Surveillance Design:** The patient interface utilizes client-side Voice Activity Detection (VAD). Audio is only streamed to the API when sustained human speech is detected, and the camera is never accessed, ensuring absolute privacy.
 
 ---
 
