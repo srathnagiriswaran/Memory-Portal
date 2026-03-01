@@ -31,30 +31,21 @@ export default function MagicFrame() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [familyGraphText, setFamilyGraphText] = useState("");
   const [patientName, setPatientName] = useState("");
+  const [photoCatalogText, setPhotoCatalogText] = useState("");
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
-  const onChangePhoto = useCallback((theme: string) => {
-    console.log("🔥 AI TRIGGERED TOOL: changePhoto for theme:", theme);
-    // Simple search: find first memory where transcription, caretakerName, or learnedFacts includes the theme
-    const lowerTheme = theme.toLowerCase();
-    const index = memories.findIndex(m => 
-      m.transcription.toLowerCase().includes(lowerTheme) || 
-      m.caretakerName.toLowerCase().includes(lowerTheme) ||
-      m.learnedFacts?.some(f => f.toLowerCase().includes(lowerTheme))
-    );
+  const onChangePhoto = useCallback((photoId: string) => {
+    console.log("🔥 AI TRIGGERED TOOL: changePhoto for ID:", photoId);
+    
+    const index = memories.findIndex(m => m.id === photoId);
     
     if (index !== -1) {
       setCurrentPhotoIndex(index);
       const mem = memories[index];
       const facts = mem.learnedFacts && mem.learnedFacts.length > 0 ? ` Learned facts: ${mem.learnedFacts.join(', ')}.` : '';
-      return `Success! I have changed the photo to a new one. Background info: This was added by ${mem.caretakerName}. Note: "${mem.transcription}".${facts} Please comment on this new photo.`;
+      return `Success! I have changed the photo to the requested one. Background info: This was added by ${mem.caretakerName}. Note: "${mem.transcription}".${facts} Please warmly comment on this new photo now.`;
     } else {
-      // Pick a random one to simulate it if not found exactly
-      const randomIdx = Math.floor(Math.random() * memories.length);
-      setCurrentPhotoIndex(randomIdx);
-      const mem = memories[randomIdx];
-      const facts = mem.learnedFacts && mem.learnedFacts.length > 0 ? ` Learned facts: ${mem.learnedFacts.join(', ')}.` : '';
-      return `I could not find an exact match for "${theme}", so I showed a different random memory instead. Background info: Added by ${mem.caretakerName}. Note: "${mem.transcription}".${facts} Please comment on this photo instead.`;
+      return `Failed to find photo with ID ${photoId}. Please try a different ID from the catalog, or continue the conversation without changing the photo.`;
     }
   }, [memories]);
 
@@ -74,6 +65,10 @@ export default function MagicFrame() {
         const data = await memRes.json();
         if (data.memories && data.memories.length > 0) {
           setMemories(data.memories);
+          setCurrentPhotoIndex(Math.floor(Math.random() * data.memories.length));
+          
+          const catalog = data.memories.map((m: any) => `[ID: ${m.id}] - Added by: ${m.caretakerName}. Context: "${m.transcription}". ${m.learnedFacts && m.learnedFacts.length > 0 ? `Learned facts: ${m.learnedFacts.join(', ')}` : ''}`).join('\n');
+          setPhotoCatalogText(`AVAILABLE PHOTO ALBUM CATALOG:\n${catalog}`);
         } else {
           // Fallback ambient photos if no memories exist
           setMemories([
@@ -139,6 +134,12 @@ export default function MagicFrame() {
       ${patientName ? `You are talking to: ${patientName}` : ''}
       ${familyGraphText}
       
+      ${photoCatalogText}
+      
+      =============================
+      START OF SESSION
+      =============================
+      CURRENTLY DISPLAYED PHOTO [ID: ${currentMemory?.id}]
       This photo was added by ${currentMemory?.caretakerName || "a loved one"}. They left this note about it: "${currentMemory?.transcription || "It's a beautiful memory."}"${facts}
     `.trim();
     

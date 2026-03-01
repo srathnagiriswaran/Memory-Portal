@@ -12,9 +12,9 @@ INSTRUCTIONS:
 5. Do not act like an AI or a computer. Act like a kind friend sitting next to them.
 6. Start the conversation by warmly commenting on the photo using the background information provided.
 7. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.
-8. PHOTO NAVIGATION (CRITICAL): You have access to a 'changePhoto' tool. If the user brings up a topic, a memory, a person, or an object that is NOT in the current photo (e.g., "I remember planting an orange", "I miss my dog"), you MUST immediately stop talking and CALL THE 'changePhoto' TOOL with that theme (e.g., "orange", "dog"). DO NOT ANSWER IN TEXT FIRST. Call the tool first so the user can see the new photo before you comment on it.
-9. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool to pivot to a happy, calming, or different memory to regulate their emotions.
-10. FAMILY KNOWLEDGE: Use any provided family knowledge graph context seamlessly as if you've always known their family. Actively draw connections between what the user says and the hobbies, details, or relationships of their family members to make the conversation deeply personal (e.g., "That reminds me of your daughter Sarah's love for gardening!").`;
+15. PHOTO NAVIGATION (CRITICAL): You have an 'AVAILABLE PHOTO ALBUM CATALOG' listing all photos by ID. If the user brings up a topic, a memory, a person, or an object that matches a DIFFERENT photo in the catalog (e.g., user mentions an orange and there is a photo ID about planting oranges), you MUST immediately stop talking and CALL THE 'changePhoto' TOOL with the exact [ID] of the matching photo. DO NOT ANSWER IN TEXT FIRST. Call the tool first so the user can see the new photo before you comment on it.
+16. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool with the [ID] of a happy or calming memory from the catalog to regulate their emotions.
+17. FAMILY KNOWLEDGE: Use any provided family knowledge graph context seamlessly as if you've always known their family. Actively draw connections between what the user says and the hobbies, details, or relationships of their family members to make the conversation deeply personal (e.g., "That reminds me of your daughter Sarah's love for gardening!").`;
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
@@ -240,13 +240,13 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
                 tools: [{
                   functionDeclarations: [{
                     name: "changePhoto",
-                    description: "Changes the displayed photo based on a theme, person, or mood to guide the conversation. Use this when the user mentions another topic or if their emotional tone suggests a change of scenery would help.",
+                    description: "Changes the displayed photo to a specific ID from the AVAILABLE PHOTO ALBUM CATALOG. Use this when the user mentions a topic that matches another photo in the catalog.",
                     parameters: {
                       type: "OBJECT",
                       properties: {
-                        theme: { type: "STRING", description: "The theme, person, or mood to search for in the album (e.g., 'cat', 'wedding', 'happy')." }
+                        photoId: { type: "STRING", description: "The exact ID of the photo to display, taken from the catalog." }
                       },
-                      required: ["theme"]
+                      required: ["photoId"]
                     }
                   }]
                 }]
@@ -270,6 +270,10 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
               setState("connected");
 
               if (pendingContextRef.current) {
+                // Extract the current photo ID from the context if it exists
+                const idMatch = pendingContextRef.current.match(/CURRENTLY DISPLAYED PHOTO \[ID: (.*?)\]/);
+                const currentId = idMatch ? idMatch[1] : 'unknown';
+
                 ws.send(
                   JSON.stringify({
                     clientContent: {
@@ -278,7 +282,7 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
                           role: "user",
                           parts: [
                             {
-                              text: `Here is the background information for the photo we are looking at: "${pendingContextRef.current}". Please start the conversation by warmly commenting on this photo using this information.`,
+                              text: `Hello! We are currently looking at the photo with ID [${currentId}]. \n\nHere is all the background information and the photo catalog:\n\n${pendingContextRef.current}\n\nPlease speak to me first! Warmly greet me and comment on the photo we are currently looking at.`,
                             },
                           ],
                         },
