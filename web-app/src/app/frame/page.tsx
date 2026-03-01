@@ -30,6 +30,7 @@ export default function MagicFrame() {
   const [isActiveSession, setIsActiveSession] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [familyGraphText, setFamilyGraphText] = useState("");
+  const [patientName, setPatientName] = useState("");
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   const onChangePhoto = useCallback((theme: string) => {
@@ -64,9 +65,10 @@ export default function MagicFrame() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [memRes, familyRes] = await Promise.all([
+        const [memRes, familyRes, patientRes] = await Promise.all([
           fetch("/api/memories"),
-          fetch("/api/family-graph")
+          fetch("/api/family-graph"),
+          fetch("/api/patient")
         ]);
         
         const data = await memRes.json();
@@ -87,6 +89,9 @@ export default function MagicFrame() {
         } else {
           setFamilyGraphText(FAMILY_KNOWLEDGE_GRAPH); // Fallback to mock
         }
+        
+        const patientData = await patientRes.json();
+        setPatientName(patientData.name || "");
       } catch (err) {
         console.error("Failed to fetch data:", err);
       }
@@ -131,6 +136,7 @@ export default function MagicFrame() {
       : '';
       
     const context = `
+      ${patientName ? `You are talking to: ${patientName}` : ''}
       ${familyGraphText}
       
       This photo was added by ${currentMemory?.caretakerName || "a loved one"}. They left this note about it: "${currentMemory?.transcription || "It's a beautiful memory."}"${facts}

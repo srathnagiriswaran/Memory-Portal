@@ -15,34 +15,41 @@ export default function StudioDashboard() {
   const [vaultMemories, setVaultMemories] = useState<any[]>([]);
   const [harvestedMemories, setHarvestedMemories] = useState<any[]>([]);
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [patientName, setPatientName] = useState("");
+  const [savingPatient, setSavingPatient] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [newFamilyMember, setNewFamilyMember] = useState({ name: '', relationship: '', details: '' });
+  const [newFamilyMember, setNewFamilyMember] = useState({ name: '', relationship: 'Daughter', customRelationship: '', details: '' });
   const [addingFamily, setAddingFamily] = useState(false);
+
+  const RELATIONSHIPS = ["Son", "Daughter", "Husband", "Wife", "Partner", "Brother", "Sister", "Grandson", "Granddaughter", "Friend", "Other"];
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [pendingRes, activeRes, harvestRes, familyRes] = await Promise.all([
+      const [pendingRes, activeRes, harvestRes, familyRes, patientRes] = await Promise.all([
         fetch("/api/memories?status=pending_voice"),
         fetch("/api/memories?status=active"),
         fetch("/api/harvested"),
         fetch("/api/family-graph"),
+        fetch("/api/patient"),
       ]);
 
       const pending = pendingRes.ok ? await pendingRes.json() : { memories: [] };
       const active = activeRes.ok ? await activeRes.json() : { memories: [] };
       const harvest = harvestRes.ok ? await harvestRes.json() : { harvested: [] };
       const family = familyRes.ok ? await familyRes.json() : { members: [] };
+      const patient = patientRes.ok ? await patientRes.json() : { name: "" };
 
       setPendingMemories(pending.memories || []);
       setVaultMemories(active.memories || []);
       setHarvestedMemories(harvest.harvested || []);
       setFamilyMembers(family.members || []);
+      setPatientName(patient.name || "");
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -111,14 +118,23 @@ export default function StudioDashboard() {
   const handleAddFamilyMember = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddingFamily(true);
+    
+    const finalRelationship = newFamilyMember.relationship === 'Other' 
+      ? newFamilyMember.customRelationship 
+      : newFamilyMember.relationship;
+      
     try {
       const res = await fetch("/api/family-graph", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newFamilyMember),
+        body: JSON.stringify({
+          name: newFamilyMember.name,
+          relationship: finalRelationship,
+          details: newFamilyMember.details
+        }),
       });
       if (res.ok) {
-        setNewFamilyMember({ name: '', relationship: '', details: '' });
+        setNewFamilyMember({ name: '', relationship: 'Daughter', customRelationship: '', details: '' });
         fetchAll(); // Refresh the list
         flash("Family member added successfully");
       } else {
@@ -129,6 +145,27 @@ export default function StudioDashboard() {
       flash("Error adding family member", "err");
     } finally {
       setAddingFamily(false);
+    }
+  };
+
+  const handleSavePatient = async () => {
+    setSavingPatient(true);
+    try {
+      const res = await fetch("/api/patient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: patientName }),
+      });
+      if (res.ok) {
+        flash("Patient profile updated!");
+      } else {
+        flash("Failed to save patient", "err");
+      }
+    } catch (err) {
+      console.error("Error saving patient:", err);
+      flash("Failed to save patient", "err");
+    } finally {
+      setSavingPatient(false);
     }
   };
 
@@ -199,6 +236,33 @@ export default function StudioDashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-8">
+        
+        {/* Patient Profile */}
+        <section>
+          <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-medium text-emerald-900 mb-1">Patient Profile</h2>
+              <p className="text-sm text-emerald-700">Set the name of the person using the Magic Frame so the AI knows who it&apos;s talking to.</p>
+            </div>
+            <div className="flex w-full sm:w-auto gap-2">
+              <input
+                type="text"
+                placeholder="E.g. Grandpa John"
+                className="flex-1 sm:w-64 border border-emerald-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
+              />
+              <button
+                onClick={handleSavePatient}
+                disabled={savingPatient}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {savingPatient ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save"}
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* Memory Harvest */}
         <section>
           <h2 className="text-xl font-medium mb-4 text-gray-800">Latest Memory Harvest</h2>
@@ -253,37 +317,55 @@ export default function StudioDashboard() {
           
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
             <h3 className="font-medium text-gray-900 mb-4">Add New Context</h3>
-            <form onSubmit={handleAddFamilyMember} className="flex flex-col sm:flex-row gap-4">
-              <input
-                type="text"
-                placeholder="Name (e.g. Sarah)"
-                className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
-                value={newFamilyMember.name}
-                onChange={(e) => setNewFamilyMember({ ...newFamilyMember, name: e.target.value })}
-                required
-              />
-              <input
-                type="text"
-                placeholder="Relationship (e.g. Daughter)"
-                className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
-                value={newFamilyMember.relationship}
-                onChange={(e) => setNewFamilyMember({ ...newFamilyMember, relationship: e.target.value })}
-                required
-              />
-              <input
-                type="text"
-                placeholder="Details (e.g. loves gardening)"
-                className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
-                value={newFamilyMember.details}
-                onChange={(e) => setNewFamilyMember({ ...newFamilyMember, details: e.target.value })}
-              />
-              <button
-                type="submit"
-                disabled={addingFamily}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
-              >
-                {addingFamily ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Add Context"}
-              </button>
+            <form onSubmit={handleAddFamilyMember} className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <input
+                  type="text"
+                  placeholder="Name (e.g. Sarah)"
+                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  value={newFamilyMember.name}
+                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, name: e.target.value })}
+                  required
+                />
+                
+                <select
+                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500 bg-white"
+                  value={newFamilyMember.relationship}
+                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, relationship: e.target.value })}
+                >
+                  {RELATIONSHIPS.map(rel => (
+                    <option key={rel} value={rel}>{rel}</option>
+                  ))}
+                </select>
+                
+                {newFamilyMember.relationship === 'Other' && (
+                  <input
+                    type="text"
+                    placeholder="Custom Relationship"
+                    className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                    value={newFamilyMember.customRelationship}
+                    onChange={(e) => setNewFamilyMember({ ...newFamilyMember, customRelationship: e.target.value })}
+                    required
+                  />
+                )}
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <input
+                  type="text"
+                  placeholder="Details (e.g. loves gardening)"
+                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  value={newFamilyMember.details}
+                  onChange={(e) => setNewFamilyMember({ ...newFamilyMember, details: e.target.value })}
+                />
+                <button
+                  type="submit"
+                  disabled={addingFamily}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+                >
+                  {addingFamily ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Add Context"}
+                </button>
+              </div>
             </form>
           </div>
 
