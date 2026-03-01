@@ -197,10 +197,23 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
       setupDoneRef.current = false;
       pendingContextRef.current = initialContext;
 
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      // Fetch the API key dynamically from our secure backend endpoint
+      let apiKey = "";
+      try {
+        const res = await fetch("/api/gemini-key");
+        if (!res.ok) throw new Error("Failed to fetch API key from server");
+        const data = await res.json();
+        apiKey = data.key;
+      } catch (err: any) {
+        console.error("[GeminiLive] Failed to get API key:", err);
+        setState("error");
+        setError("Failed to retrieve Gemini API key from server");
+        return;
+      }
+
       if (!apiKey) {
         setState("error");
-        setError("Gemini API Key is missing");
+        setError("Gemini API Key is missing on the server");
         return;
       }
 
