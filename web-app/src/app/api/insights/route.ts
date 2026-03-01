@@ -4,12 +4,15 @@ import { adminDb } from "@/lib/firebase-admin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
+    const checkOnly = searchParams.get("check") === "true";
 
     const snapshot = await adminDb.collection("harvested_memories")
       .orderBy("createdAt", "desc")
@@ -17,10 +20,18 @@ export async function GET() {
       .get();
 
     // Filter out rejected memories so they don't influence insights
-    const memories = snapshot.docs
-      .map((doc: any) => doc.data())
-      .filter((m: any) => m.status !== 'rejected')
-      .slice(0, 15);
+    const allValidMemories = snapshot.docs
+      .map((doc: any) => ({ id: doc.id, ...doc.data() }))
+      .filter((m: any) => m.status !== 'rejected');
+
+    if (checkOnly) {
+      return NextResponse.json({ 
+        totalValidSessions: allValidMemories.length,
+        latestMemoryId: allValidMemories.length > 0 ? allValidMemories[0].id : null
+      });
+    }
+
+    const memories = allValidMemories.slice(0, 15);
 
     if (memories.length === 0) {
       return NextResponse.json({ 
@@ -79,7 +90,13 @@ Facts Extracted: ${m.facts ? m.facts.join(", ") : "None"}
       return NextResponse.json({ error: "Failed to generate insights" }, { status: 500 });
     }
 
-    return NextResponse.json({ insights: result });
+    return NextResponse.json({ 
+      insights: result,
+      metadata: {
+        totalValidSessions: allValidMemories.length,
+        latestMemoryId: allValidMemories.length > 0 ? allValidMemories[0].id : null
+      }
+    });
   } catch (error: any) {
     console.error("Insights Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

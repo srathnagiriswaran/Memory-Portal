@@ -68,9 +68,68 @@ export default function StudioDashboard() {
     }
   }, []);
 
+  const handleGenerateInsights = useCallback(async (isAuto = false) => {
+    setGeneratingInsights(true);
+    try {
+      const res = await fetch("/api/insights");
+      const data = await res.json();
+      if (res.ok && data.insights) {
+        setInsights(data.insights);
+        localStorage.setItem("caregiver_insights", JSON.stringify(data.insights));
+        if (data.metadata) {
+          localStorage.setItem("caregiver_insights_meta", JSON.stringify(data.metadata));
+        }
+        if (!isAuto) flash("Insights generated successfully!", "ok");
+      } else {
+        if (!isAuto) flash(data.message || data.error || "Failed to generate insights", "err");
+      }
+    } catch (err) {
+      console.error(err);
+      if (!isAuto) flash("Error generating insights", "err");
+    } finally {
+      setGeneratingInsights(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (status === "authenticated") fetchAll();
-  }, [status, fetchAll]);
+    if (status === "authenticated") {
+      fetchAll();
+
+      // Check if we should auto-generate new insights
+      const checkInsightsAutoUpdate = async () => {
+        try {
+          const cached = localStorage.getItem("caregiver_insights");
+          const cachedMetaStr = localStorage.getItem("caregiver_insights_meta");
+          
+          const res = await fetch("/api/insights?check=true");
+          const data = await res.json();
+          
+          if (res.ok && data.totalValidSessions !== undefined) {
+            let shouldUpdate = false;
+            
+            if (!cached || !cachedMetaStr) {
+              // No cached insights, but there are sessions
+              if (data.totalValidSessions > 0) shouldUpdate = true;
+            } else {
+              const cachedMeta = JSON.parse(cachedMetaStr);
+              // If there are at least 2 new sessions since last generation
+              if (data.totalValidSessions >= (cachedMeta.totalValidSessions || 0) + 2) {
+                shouldUpdate = true;
+              }
+            }
+            
+            if (shouldUpdate) {
+              handleGenerateInsights(true);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to check insights auto-update", e);
+        }
+      };
+      
+      checkInsightsAutoUpdate();
+    }
+  }, [status, fetchAll, handleGenerateInsights]);
 
   useEffect(() => {
     // Load cached insights on initial mount
@@ -325,25 +384,6 @@ export default function StudioDashboard() {
     }
   };
 
-  const handleGenerateInsights = async () => {
-    setGeneratingInsights(true);
-    try {
-      const res = await fetch("/api/insights");
-      const data = await res.json();
-      if (res.ok && data.insights) {
-        setInsights(data.insights);
-        localStorage.setItem("caregiver_insights", JSON.stringify(data.insights));
-        flash("Insights generated successfully!", "ok");
-      } else {
-        flash(data.message || data.error || "Failed to generate insights", "err");
-      }
-    } catch (err) {
-      console.error(err);
-      flash("Error generating insights", "err");
-    } finally {
-      setGeneratingInsights(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24">
@@ -414,7 +454,7 @@ export default function StudioDashboard() {
                 <p className="text-sm text-indigo-700">Analyze recent Magic Frame sessions to understand patient mood and get personalized photo upload suggestions.</p>
               </div>
               <button
-                onClick={handleGenerateInsights}
+                onClick={() => handleGenerateInsights(false)}
                 disabled={generatingInsights}
                 className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
               >
