@@ -37,7 +37,9 @@ export default function MagicFrame() {
   const onChangePhoto = useCallback((photoId: string) => {
     console.log("🔥 AI TRIGGERED TOOL: changePhoto for ID:", photoId);
     
-    const index = memories.findIndex(m => m.id === photoId);
+    // Sanitize photoId just in case the model includes brackets or spaces
+    const cleanPhotoId = photoId.replace(/\[|\]/g, '').trim();
+    const index = memories.findIndex(m => m.id === cleanPhotoId);
     
     if (index !== -1) {
       setCurrentPhotoIndex(index);
@@ -45,7 +47,7 @@ export default function MagicFrame() {
       const facts = mem.learnedFacts && mem.learnedFacts.length > 0 ? ` Learned facts: ${mem.learnedFacts.join(', ')}.` : '';
       return `Success! I have changed the photo to the requested one. Background info: This was added by ${mem.caretakerName}. Note: "${mem.transcription}".${facts} Please warmly comment on this new photo now.`;
     } else {
-      return `Failed to find photo with ID ${photoId}. Please try a different ID from the catalog, or continue the conversation without changing the photo.`;
+      return `Failed to find photo with ID ${cleanPhotoId}. Please try a different ID from the catalog, or continue the conversation without changing the photo.`;
     }
   }, [memories]);
 

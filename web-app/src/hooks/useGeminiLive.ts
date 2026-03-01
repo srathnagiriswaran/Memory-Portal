@@ -18,7 +18,7 @@ INSTRUCTIONS:
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
-export function useGeminiLive(options: { onChangePhoto?: (theme: string) => string } = {}) {
+export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => string } = {}) {
   const [state, setState] = useState<GeminiLiveState>("disconnected");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string[]>([]);
@@ -310,17 +310,20 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
             if (data.serverContent?.modelTurn) {
               for (const part of data.serverContent.modelTurn.parts ?? []) {
                 if (part.functionCall) {
-                  const { name, args } = part.functionCall;
+                  const { name, args, id } = part.functionCall;
                   console.log("[GeminiLive] Tool call received:", name, args);
                   if (name === "changePhoto" && onChangePhotoRef.current) {
                     const newContext = onChangePhotoRef.current(args.photoId || "");
                     if (ws.readyState === WebSocket.OPEN) {
+                      // Workaround: Send functionResponse via clientContent instead of toolResponse
                       ws.send(JSON.stringify({
                         clientContent: {
                           turns: [{
+                            role: "user",
                             parts: [{
                               functionResponse: {
                                 name: "changePhoto",
+                                id: id,
                                 response: { result: newContext }
                               }
                             }]
