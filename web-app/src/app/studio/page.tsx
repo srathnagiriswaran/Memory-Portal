@@ -72,6 +72,18 @@ export default function StudioDashboard() {
     if (status === "authenticated") fetchAll();
   }, [status, fetchAll]);
 
+  useEffect(() => {
+    // Load cached insights on initial mount
+    const cached = localStorage.getItem("caregiver_insights");
+    if (cached) {
+      try {
+        setInsights(JSON.parse(cached));
+      } catch (e) {
+        console.error("Failed to parse cached insights", e);
+      }
+    }
+  }, []);
+
   const flash = (msg: string, type: "ok" | "err" = "ok") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -320,6 +332,7 @@ export default function StudioDashboard() {
       const data = await res.json();
       if (res.ok && data.insights) {
         setInsights(data.insights);
+        localStorage.setItem("caregiver_insights", JSON.stringify(data.insights));
         flash("Insights generated successfully!", "ok");
       } else {
         flash(data.message || data.error || "Failed to generate insights", "err");
