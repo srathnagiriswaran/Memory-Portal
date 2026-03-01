@@ -247,13 +247,13 @@ export default function StudioDashboard() {
       });
       if (res.ok) {
         setSavedPatientName(patientName);
-        flash("Patient profile updated!");
+        flash("Loved one's profile updated!");
       } else {
-        flash("Failed to save patient", "err");
+        flash("Failed to save profile", "err");
       }
     } catch (err) {
       console.error("Error saving patient:", err);
-      flash("Failed to save patient", "err");
+      flash("Failed to save profile", "err");
     } finally {
       setSavingPatient(false);
     }
@@ -472,12 +472,12 @@ export default function StudioDashboard() {
         {/* === SETTINGS TAB === */}
         {activeTab === "settings" && (
           <>
-        {/* Patient Profile */}
+        {/* Loved One Profile */}
             <section>
           <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-medium text-emerald-900 mb-1">Patient Profile</h2>
-              <p className="text-sm text-emerald-700">Set the name of the person using the Magic Frame so the AI knows who it&apos;s talking to.</p>
+              <h2 className="text-xl font-medium text-emerald-900 mb-1">Loved One's Profile</h2>
+              <p className="text-sm text-emerald-700">Set the name of your loved one using the Magic Frame so the AI knows who it&apos;s talking to.</p>
             </div>
             <div className="flex w-full sm:w-auto gap-2">
               <input
@@ -513,7 +513,7 @@ export default function StudioDashboard() {
                   <Sparkles className="w-5 h-5 text-indigo-500" />
                   AI Caregiver Insights
                 </h2>
-                <p className="text-sm text-indigo-700">Analyze recent Magic Frame sessions to understand patient mood and get personalized photo upload suggestions.</p>
+                <p className="text-sm text-indigo-700">Analyze recent Magic Frame sessions to understand their mood and get personalized photo upload suggestions.</p>
               </div>
               <button
                 onClick={() => handleGenerateInsights(false)}
@@ -569,7 +569,7 @@ export default function StudioDashboard() {
           <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-medium text-gray-900 mb-1">Magic Frame Setup</h2>
-              <p className="text-sm text-gray-500">Generate a secure, one-time link to authorize the patient&apos;s tablet.</p>
+              <p className="text-sm text-gray-500">Generate a secure, one-time link to authorize their tablet.</p>
             </div>
             <div className="flex w-full sm:w-auto gap-2">
               <button
@@ -901,7 +901,7 @@ export default function StudioDashboard() {
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            These photos are currently in the Magic Frame rotation. <b>Patient Memories</b> attached to these photos are used by the AI as context to personalize future conversations. You can delete any fact that you don't want the AI to mention again.
+            These photos are currently in the Magic Frame rotation. <b>Captured Memories</b> attached to these photos are used by the AI as context to personalize future conversations. You can delete any fact that you don't want the AI to mention again.
           </p>
 
           {loading ? (
@@ -968,7 +968,7 @@ export default function StudioDashboard() {
                         </div>
                         {memory.learnedFacts && memory.learnedFacts.length > 0 && (
                           <div className="mt-2 space-y-1">
-                            <span className="text-xs font-medium text-emerald-700">Patient Memories:</span>
+                            <span className="text-xs font-medium text-emerald-700">Captured Memories:</span>
                             <ul className="text-xs text-gray-500 flex flex-col gap-1">
                               {memory.learnedFacts.map((fact: string, idx: number) => (
                                 <li key={idx} className="flex items-start gap-1 group/fact">
