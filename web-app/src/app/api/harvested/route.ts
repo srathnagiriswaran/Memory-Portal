@@ -39,7 +39,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id, action } = await request.json();
+    const { id, action, photoId, facts } = await request.json();
     
     if (!id || !action) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
@@ -47,8 +47,23 @@ export async function PATCH(request: Request) {
 
     const newStatus = action === 'verify' ? 'verified' : 'rejected';
     
+    // If verifying, update the original memory with the accepted facts
+    if (action === 'verify' && photoId && photoId !== "unknown" && facts && facts.length > 0) {
+      const memoryRef = adminDb.collection("memories").doc(photoId);
+      const doc = await memoryRef.get();
+      if (doc.exists) {
+        const existingFacts = doc.data()?.learnedFacts || [];
+        // Only add unique facts
+        const combinedFacts = Array.from(new Set([...existingFacts, ...facts]));
+        await memoryRef.update({
+          learnedFacts: combinedFacts
+        });
+      }
+    }
+    
     await adminDb.collection("harvested_memories").doc(id).update({
       status: newStatus,
+      facts: facts || [], // Update with edited facts just in case
       updatedAt: new Date().toISOString()
     });
 

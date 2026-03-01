@@ -244,7 +244,8 @@ export default function MagicFrame() {
         body: JSON.stringify({
           transcript: finalTranscript,
           photoId: currentMemory?.id,
-          caretakerName: currentMemory?.caretakerName
+          caretakerName: currentMemory?.caretakerName,
+          photoUrl: currentMemory?.photoUrl
         })
       });
       console.log("Memory Harvest complete.");

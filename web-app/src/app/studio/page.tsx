@@ -29,6 +29,9 @@ export default function StudioDashboard() {
 
   const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
   const [editMemoryText, setEditMemoryText] = useState("");
+  
+  const [editingHarvestId, setEditingHarvestId] = useState<string | null>(null);
+  const [editHarvestFacts, setEditHarvestFacts] = useState<string[]>([]);
 
   const RELATIONSHIPS = ["Son", "Daughter", "Husband", "Wife", "Partner", "Brother", "Sister", "Grandson", "Granddaughter", "Friend", "Other"];
 
@@ -107,16 +110,18 @@ export default function StudioDashboard() {
     if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
   }, []);
 
-  const handleVerify = async (id: string, action: "verify" | "reject") => {
+  const handleVerify = async (id: string, action: "verify" | "reject", photoId?: string, facts?: string[]) => {
     try {
       await fetch("/api/harvested", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action }),
+        body: JSON.stringify({ id, action, photoId, facts }),
       });
       setHarvestedMemories((prev) => prev.filter((m) => m.id !== id));
+      flash(action === 'verify' ? "Memory verified and saved!" : "Memory discarded");
     } catch (err) {
       console.error("Error updating memory:", err);
+      flash("Failed to update memory", "err");
     }
   };
 
@@ -361,31 +366,108 @@ export default function StudioDashboard() {
             <div className="space-y-4">
               {harvestedMemories.map((memory) => (
                 <div key={memory.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                  <div className="bg-emerald-100 p-4 rounded-xl text-emerald-600">
-                    <Mic className="w-8 h-8" />
-                  </div>
-                  <div className="flex-1">
+                  {memory.photoUrl ? (
+                    <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                      <img src={memory.photoUrl} alt="Memory context" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-100 p-4 rounded-xl text-emerald-600 flex-shrink-0">
+                      <Mic className="w-8 h-8" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-gray-900 mb-1">New insight from {memory.caretakerName || "a recent"} session</h3>
-                    <ul className="text-gray-600 leading-relaxed list-disc list-inside ml-2">
-                      {memory.facts?.map((fact: string, idx: number) => (
-                        <li key={idx}>&quot;{fact}&quot;</li>
-                      ))}
-                    </ul>
+                    {memory.emotionalSummary && (
+                      <p className="text-sm text-emerald-700 bg-emerald-50 p-3 rounded-lg mb-3 italic">
+                        {memory.emotionalSummary}
+                      </p>
+                    )}
+                    
+                    {editingHarvestId === memory.id ? (
+                      <div className="space-y-2">
+                        {editHarvestFacts.map((fact, idx) => (
+                          <div key={idx} className="flex gap-2">
+                            <input
+                              type="text"
+                              value={fact}
+                              onChange={(e) => {
+                                const newFacts = [...editHarvestFacts];
+                                newFacts[idx] = e.target.value;
+                                setEditHarvestFacts(newFacts);
+                              }}
+                              className="flex-1 border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500"
+                            />
+                            <button
+                              onClick={() => setEditHarvestFacts(prev => prev.filter((_, i) => i !== idx))}
+                              className="text-red-400 hover:text-red-600 p-1"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => setEditHarvestFacts(prev => [...prev, ""])}
+                          className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
+                        >
+                          <Plus className="w-4 h-4" /> Add fact
+                        </button>
+                      </div>
+                    ) : (
+                      <ul className="text-gray-600 text-sm leading-relaxed list-disc list-inside ml-1">
+                        {memory.facts?.map((fact: string, idx: number) => (
+                          <li key={idx}>&quot;{fact}&quot;</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2 w-full sm:w-auto">
-                    <button
-                      onClick={() => handleVerify(memory.id, "verify")}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 className="w-5 h-5" />
-                      Verify &amp; Save
-                    </button>
-                    <button
-                      onClick={() => handleVerify(memory.id, "reject")}
-                      className="w-full bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      Discard
-                    </button>
+                    {editingHarvestId === memory.id ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            const validFacts = editHarvestFacts.filter(f => f.trim() !== "");
+                            handleVerify(memory.id, "verify", memory.photoId, validFacts);
+                            setEditingHarvestId(null);
+                          }}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          Save &amp; Attach
+                        </button>
+                        <button
+                          onClick={() => setEditingHarvestId(null)}
+                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditingHarvestId(memory.id);
+                            setEditHarvestFacts(memory.facts || []);
+                          }}
+                          className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Review &amp; Edit
+                        </button>
+                        <button
+                          onClick={() => handleVerify(memory.id, "verify", memory.photoId, memory.facts)}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          Quick Approve
+                        </button>
+                        <button
+                          onClick={() => handleVerify(memory.id, "reject")}
+                          className="w-full bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                          Discard
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'dummy_key' });
-    const { transcript, photoId, caretakerName } = await request.json();
+    const { transcript, photoId, caretakerName, photoUrl } = await request.json();
 
     if (!transcript) {
       return NextResponse.json({ error: "Missing transcript" }, { status: 400 });
@@ -19,9 +19,16 @@ export async function POST(request: Request) {
     const prompt = `
       You are an expert at extracting useful, emotional, and factual memories from conversations with older adults.
       Below is a transcript or summary of a conversation between an AI companion and a senior looking at a family photo.
-      Extract any newly discovered facts, memories, or strong emotional reactions that the family might want to know.
-      Return the output as a JSON array of strings. Only return the JSON array, no markdown formatting.
-      If there is nothing new or meaningful, return an empty array [].
+      
+      Task:
+      1. Extract any newly discovered facts, memories, or strong emotional reactions that the family might want to know (as an array of strings). If there are none, return an empty array [].
+      2. Provide a 1-2 sentence emotional summary of the conversation. How did the patient sound? Were they happy, nostalgic, confused?
+
+      Return the output strictly as a JSON object with the following structure. Do NOT include markdown formatting or backticks.
+      {
+        "extractedFacts": ["fact 1", "fact 2"],
+        "emotionalSummary": "summary here"
+      }
       
       Transcript:
       ${transcript}
@@ -32,44 +39,29 @@ export async function POST(request: Request) {
       contents: prompt,
     });
 
-    let newFacts = [];
+    let result = { extractedFacts: [], emotionalSummary: "" };
     try {
-      newFacts = JSON.parse(response.text || "[]");
+      const cleanText = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() || "{}";
+      result = JSON.parse(cleanText);
     } catch (e) {
-      // attempt to clean up markdown if present
-      const cleanText = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() || "[]";
-      newFacts = JSON.parse(cleanText);
+      console.error("Failed to parse Gemini output:", e);
     }
 
-    if (newFacts.length > 0) {
+    if ((result.extractedFacts && result.extractedFacts.length > 0) || result.emotionalSummary) {
       // Save to Firestore
       const harvestDoc = {
         photoId: photoId || "unknown",
+        photoUrl: photoUrl || "",
         caretakerName: caretakerName || "Family",
-        facts: newFacts,
+        facts: result.extractedFacts || [],
+        emotionalSummary: result.emotionalSummary || "",
         status: "pending_verification",
         createdAt: new Date().toISOString(),
       };
       await adminDb.collection("harvested_memories").add(harvestDoc);
-
-      // Append directly to the memory document to complete the feedback loop
-      if (photoId && photoId !== "unknown") {
-        try {
-          const memoryRef = adminDb.collection("memories").doc(photoId);
-          const doc = await memoryRef.get();
-          if (doc.exists) {
-            const existingFacts = doc.data()?.learnedFacts || [];
-            await memoryRef.update({
-              learnedFacts: [...existingFacts, ...newFacts]
-            });
-          }
-        } catch (e) {
-          console.error("Failed to update original memory with learned facts:", e);
-        }
-      }
     }
 
-    return NextResponse.json({ success: true, facts: newFacts });
+    return NextResponse.json({ success: true, facts: result.extractedFacts, emotionalSummary: result.emotionalSummary });
   } catch (error: any) {
     console.error("Harvest Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
