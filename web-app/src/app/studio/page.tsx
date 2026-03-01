@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Mic, CheckCircle2, Image as ImageIcon, Settings, Heart, LogOut,
-  Loader2, Upload, Plus, X, MonitorPlay, Trash2, Edit2
+  Loader2, Upload, Plus, X, MonitorPlay, Trash2, Edit2, Sparkles, Camera
 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { PhotoCard, MemoryItem } from "@/components/PhotoCard";
@@ -32,6 +32,9 @@ export default function StudioDashboard() {
   
   const [editingHarvestId, setEditingHarvestId] = useState<string | null>(null);
   const [editHarvestFacts, setEditHarvestFacts] = useState<string[]>([]);
+  
+  const [insights, setInsights] = useState<{overallMood: string, currentFixations: string, uploadSuggestions: string[]} | null>(null);
+  const [generatingInsights, setGeneratingInsights] = useState(false);
 
   const RELATIONSHIPS = ["Son", "Daughter", "Husband", "Wife", "Partner", "Brother", "Sister", "Grandson", "Granddaughter", "Friend", "Other"];
 
@@ -310,6 +313,25 @@ export default function StudioDashboard() {
     }
   };
 
+  const handleGenerateInsights = async () => {
+    setGeneratingInsights(true);
+    try {
+      const res = await fetch("/api/insights");
+      const data = await res.json();
+      if (res.ok && data.insights) {
+        setInsights(data.insights);
+        flash("Insights generated successfully!", "ok");
+      } else {
+        flash(data.message || data.error || "Failed to generate insights", "err");
+      }
+    } catch (err) {
+      console.error(err);
+      flash("Error generating insights", "err");
+    } finally {
+      setGeneratingInsights(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24">
       {/* Header */}
@@ -364,6 +386,61 @@ export default function StudioDashboard() {
                 {savingPatient ? <Loader2 className="w-5 h-5 animate-spin" /> : (patientName === savedPatientName && patientName !== "" ? "Saved ✓" : "Save")}
               </button>
             </div>
+          </div>
+        </section>
+
+        {/* AI Caregiver Insights */}
+        <section>
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-medium text-indigo-900 mb-1 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-indigo-500" />
+                  AI Caregiver Insights
+                </h2>
+                <p className="text-sm text-indigo-700">Analyze recent Magic Frame sessions to understand patient mood and get personalized photo upload suggestions.</p>
+              </div>
+              <button
+                onClick={handleGenerateInsights}
+                disabled={generatingInsights}
+                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+              >
+                {generatingInsights ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                {generatingInsights ? "Analyzing..." : "Generate Insights"}
+              </button>
+            </div>
+
+            {insights && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-indigo-100/50">
+                  <div className="flex items-center gap-2 text-indigo-800 mb-3">
+                    <Heart className="w-5 h-5 fill-indigo-200" />
+                    <h3 className="font-semibold">Overall Mood</h3>
+                  </div>
+                  <p className="text-gray-700 text-sm leading-relaxed">{insights.overallMood}</p>
+                </div>
+                
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-indigo-100/50">
+                  <div className="flex items-center gap-2 text-indigo-800 mb-3">
+                    <Mic className="w-5 h-5" />
+                    <h3 className="font-semibold">Current Fixations</h3>
+                  </div>
+                  <p className="text-gray-700 text-sm leading-relaxed">{insights.currentFixations}</p>
+                </div>
+
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-indigo-100/50">
+                  <div className="flex items-center gap-2 text-indigo-800 mb-3">
+                    <Camera className="w-5 h-5" />
+                    <h3 className="font-semibold">Upload Suggestions</h3>
+                  </div>
+                  <ul className="text-gray-700 text-sm leading-relaxed list-disc list-inside space-y-1">
+                    {insights.uploadSuggestions.map((suggestion, idx) => (
+                      <li key={idx}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
