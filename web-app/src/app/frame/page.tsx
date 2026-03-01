@@ -15,7 +15,7 @@ interface Memory {
 
 export default function MagicFrame() {
   const { isAwake, enable } = useNoSleep();
-  const { state: geminiState, error: geminiError, transcript, connect, disconnect } = useGeminiLive();
+  const { state: geminiState, error: geminiError, transcript, connect, disconnect, isAiTalking, volume } = useGeminiLive();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActiveSession, setIsActiveSession] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -154,18 +154,35 @@ export default function MagicFrame() {
             <div className="flex-1 flex items-center justify-center">
               {isActiveSession ? (
                 <div className="bg-black/40 backdrop-blur-xl p-12 rounded-3xl border border-white/20 text-center max-w-2xl animate-in fade-in zoom-in duration-500">
-                  <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 relative">
                      {geminiState === 'connecting' ? (
                        <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
                      ) : geminiState === 'connected' ? (
-                       <div className="w-16 h-16 bg-emerald-500 rounded-full animate-pulse" />
+                       <>
+                         {isAiTalking ? (
+                           <div className="absolute inset-0 bg-emerald-500/40 rounded-full animate-ping" />
+                         ) : (
+                           <div 
+                             className="absolute bg-emerald-500/30 rounded-full transition-all duration-200 ease-out"
+                             style={{ 
+                               width: `${100 + Math.min(volume * 500, 100)}%`,
+                               height: `${100 + Math.min(volume * 500, 100)}%`
+                             }} 
+                           />
+                         )}
+                         <div className={`w-16 h-16 rounded-full flex items-center justify-center z-10 transition-colors ${isAiTalking ? 'bg-emerald-400' : 'bg-emerald-600'}`}>
+                           <Mic className={`w-8 h-8 text-white ${isAiTalking ? 'opacity-50' : 'opacity-100'}`} />
+                         </div>
+                       </>
                      ) : (
                        <Mic className="w-10 h-10 text-red-400" />
                      )}
                   </div>
                   <h2 className="text-4xl font-light mb-4">
                     {geminiState === 'connecting' ? 'Connecting...' : 
-                     geminiState === 'connected' ? 'Listening...' : 
+                     geminiState === 'connected' ? (
+                       isAiTalking ? 'AI is speaking...' : 'Listening...'
+                     ) : 
                      'Session Ended'}
                   </h2>
                   <div className="text-2xl text-white/80 font-light leading-relaxed max-h-48 overflow-y-auto">

@@ -17,6 +17,9 @@ export function useGeminiLive() {
   const [state, setState] = useState<GeminiLiveState>("disconnected");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string[]>([]);
+  const [isAiTalking, setIsAiTalking] = useState(false);
+  const [volume, setVolume] = useState(0);
+
   const wsRef = useRef<WebSocket | null>(null);
   const captureCtxRef = useRef<AudioContext | null>(null);
   const playbackCtxRef = useRef<AudioContext | null>(null);
@@ -24,6 +27,7 @@ export function useGeminiLive() {
   const nextPlayTimeRef = useRef<number>(0);
   const pendingContextRef = useRef<string>("");
   const setupDoneRef = useRef(false);
+  const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
 
   const startAudioCapture = useCallback(() => {
     if (!streamRef.current || !captureCtxRef.current) return;
@@ -32,8 +36,18 @@ export function useGeminiLive() {
     const processor = audioCtx.createScriptProcessor(4096, 1, 1);
 
     processor.onaudioprocess = (e) => {
-      if (wsRef.current?.readyState !== WebSocket.OPEN || !setupDoneRef.current) return;
       const inputData = e.inputBuffer.getChannelData(0);
+      
+      // Calculate volume for UI
+      let sum = 0;
+      for (let i = 0; i < inputData.length; i++) {
+        sum += inputData[i] * inputData[i];
+      }
+      const rms = Math.sqrt(sum / inputData.length);
+      setVolume(rms);
+
+      if (wsRef.current?.readyState !== WebSocket.OPEN || !setupDoneRef.current) return;
+      
       const pcm16 = new Int16Array(inputData.length);
       for (let i = 0; i < inputData.length; i++) {
         const s = Math.max(-1, Math.min(1, inputData[i]));
@@ -80,6 +94,14 @@ export function useGeminiLive() {
     if (nextPlayTimeRef.current < now) nextPlayTimeRef.current = now;
     src.start(nextPlayTimeRef.current);
     nextPlayTimeRef.current += audioBuf.duration;
+
+    activeSourcesRef.current.push(src);
+    src.onended = () => {
+      activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== src);
+      if (activeSourcesRef.current.length === 0) {
+        setIsAiTalking(false);
+      }
+    };
   }, []);
 
   const connect = useCallback(
@@ -169,7 +191,18 @@ export function useGeminiLive() {
               return;
             }
 
+            if (data.serverContent?.interrupted) {
+              console.log("[GeminiLive] Interrupted by user");
+              activeSourcesRef.current.forEach((src) => {
+                try { src.stop(); } catch (e) {}
+              });
+              activeSourcesRef.current = [];
+              nextPlayTimeRef.current = 0;
+              setIsAiTalking(false);
+            }
+
             if (data.serverContent?.modelTurn) {
+              setIsAiTalking(true);
               for (const part of data.serverContent.modelTurn.parts ?? []) {
                 if (part.text) {
                   setTranscript((prev) => {
@@ -190,6 +223,9 @@ export function useGeminiLive() {
 
             if (data.serverContent?.turnComplete) {
               console.log("[GeminiLive] Model turn complete");
+              if (activeSourcesRef.current.length === 0) {
+                setIsAiTalking(false);
+              }
             }
           } catch (err) {
             console.error("[GeminiLive] Parse error:", err);
@@ -231,5 +267,5 @@ export function useGeminiLive() {
     };
   }, [disconnect]);
 
-  return { state, error, transcript, connect, disconnect };
+  return { state, error, transcript, connect, disconnect, isAiTalking, volume };
 }
