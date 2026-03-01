@@ -263,27 +263,17 @@ export default function MagicFrame() {
                       )}
                     </button>
 
-                    {/* Middle: Transcript & Status Text */}
+                    {/* Middle: Status Text Only (No Transcript) */}
                     <div className="flex-1 min-w-0 text-center md:text-left">
-                      <p className={`text-xs md:text-sm font-medium uppercase tracking-widest mb-1 ${isMuted ? 'text-red-400' : 'text-emerald-400'}`}>
+                      <p className={`text-sm md:text-lg font-medium uppercase tracking-widest ${isMuted ? 'text-red-400' : 'text-emerald-400'}`}>
                         {geminiState === 'connecting' ? 'Connecting...' : 
                          geminiState === 'connected' ? (
-                           isMuted ? 'Muted' : (isAiTalking ? 'AI Speaking' : 'Listening...')
+                           isMuted ? 'Muted' : (isAiTalking ? 'AI is speaking...' : 'Listening...')
                          ) : 'Session Ended'}
                       </p>
-                      <div className="text-lg md:text-xl text-white/90 font-light leading-snug line-clamp-2">
-                        {geminiError ? (
-                          <span className="text-red-400">{geminiError}</span>
-                        ) : transcript.length > 0 ? (
-                          <span className={transcript[transcript.length - 1].startsWith("AI:") ? "text-white" : "text-white/60"}>
-                            {transcript[transcript.length - 1].replace("AI: ", "")}
-                          </span>
-                        ) : geminiState === "connected" ? (
-                          <span className="animate-pulse text-white/40">Waiting for response...</span>
-                        ) : (
-                          <span className="text-white/40">Getting ready...</span>
-                        )}
-                      </div>
+                      {geminiError && (
+                        <p className="text-sm text-red-400 mt-1">{geminiError}</p>
+                      )}
                     </div>
 
                     {/* Right: End Session Button */}
