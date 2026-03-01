@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useNoSleep } from "@/hooks/useNoSleep";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { AnimatePresence, motion } from "framer-motion";
@@ -26,7 +26,7 @@ FAMILY KNOWLEDGE GRAPH:
 - Hobbies: Used to love gardening and restoring old cars.
 `;
 
-export default function MagicFrame() {
+function MagicFrameContent() {
   const searchParams = useSearchParams();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActiveSession, setIsActiveSession] = useState(false);
@@ -392,5 +392,17 @@ export default function MagicFrame() {
         </>
       )}
     </div>
+  );
+}
+
+export default function MagicFrame() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+      </div>
+    }>
+      <MagicFrameContent />
+    </Suspense>
   );
 }

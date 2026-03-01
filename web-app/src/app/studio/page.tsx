@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Mic, CheckCircle2, Image as ImageIcon, Settings, Heart, LogOut,
-  Loader2, Upload, Plus, X, MonitorPlay, Trash2, Edit2, Sparkles, Camera
+  Loader2, Upload, Plus, X, MonitorPlay, Trash2, Edit2, Sparkles, Camera, LayoutDashboard, Users
 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { PhotoCard, MemoryItem } from "@/components/PhotoCard";
@@ -35,6 +35,8 @@ export default function StudioDashboard() {
   
   const [insights, setInsights] = useState<{overallMood: string, currentFixations: string, uploadSuggestions: string[]} | null>(null);
   const [generatingInsights, setGeneratingInsights] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState<"dashboard" | "vault" | "family" | "settings">("dashboard");
 
   const RELATIONSHIPS = ["Son", "Daughter", "Husband", "Wife", "Partner", "Brother", "Sister", "Grandson", "Granddaughter", "Friend", "Other"];
 
@@ -414,10 +416,64 @@ export default function StudioDashboard() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-6 space-y-8">
+      <main className="max-w-4xl mx-auto p-6">
+        {/* Tabs Navigation */}
+        <div className="flex overflow-x-auto hide-scrollbar border-b border-gray-200 mb-8 pb-px">
+          <div className="flex space-x-8 px-2">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "dashboard"
+                  ? "border-emerald-500 text-emerald-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab("vault")}
+              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "vault"
+                  ? "border-emerald-500 text-emerald-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <ImageIcon className="w-4 h-4" />
+              Memory Vault
+            </button>
+            <button
+              onClick={() => setActiveTab("family")}
+              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "family"
+                  ? "border-emerald-500 text-emerald-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Family Graph
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "settings"
+                  ? "border-emerald-500 text-emerald-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              Settings
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-8">
         
+        {/* === SETTINGS TAB === */}
+        {activeTab === "settings" && (
+          <>
         {/* Patient Profile */}
-        <section>
+            <section>
           <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-medium text-emerald-900 mb-1">Patient Profile</h2>
@@ -442,6 +498,12 @@ export default function StudioDashboard() {
           </div>
         </section>
 
+          </>
+        )}
+
+        {/* === DASHBOARD TAB === */}
+        {activeTab === "dashboard" && (
+          <>
         {/* AI Caregiver Insights */}
         <section>
           <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6">
@@ -497,6 +559,11 @@ export default function StudioDashboard() {
           </div>
         </section>
 
+          </>
+        )}
+
+        {activeTab === "settings" && (
+          <>
         {/* Magic Frame Device Setup */}
         <section>
           <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -516,6 +583,11 @@ export default function StudioDashboard() {
           </div>
         </section>
 
+          </>
+        )}
+
+        {activeTab === "dashboard" && (
+          <>
         {/* Memory Harvest */}
         <section>
           <h2 className="text-xl font-medium mb-4 text-gray-800">Latest Memory Harvest</h2>
@@ -636,6 +708,12 @@ export default function StudioDashboard() {
           )}
         </section>
 
+          </>
+        )}
+
+        {/* === FAMILY TAB === */}
+        {activeTab === "family" && (
+          <>
         {/* Family Knowledge Graph */}
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -729,6 +807,12 @@ export default function StudioDashboard() {
           )}
         </section>
 
+          </>
+        )}
+
+        {/* === VAULT TAB === */}
+        {activeTab === "vault" && (
+          <>
         {/* Upload Zone */}
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -911,6 +995,9 @@ export default function StudioDashboard() {
             </div>
           )}
         </section>
+        </>
+        )}
+        </div>
       </main>
 
       {/* Toast */}
