@@ -308,22 +308,20 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
             }
 
             if (data.serverContent?.modelTurn) {
-              setIsAiTalking(true);
               for (const part of data.serverContent.modelTurn.parts ?? []) {
                 if (part.functionCall) {
                   const { name, args } = part.functionCall;
                   console.log("[GeminiLive] Tool call received:", name, args);
                   if (name === "changePhoto" && onChangePhotoRef.current) {
-                    const newContext = onChangePhotoRef.current(args.theme || "");
+                    const newContext = onChangePhotoRef.current(args.photoId || "");
                     if (ws.readyState === WebSocket.OPEN) {
                       ws.send(JSON.stringify({
                         clientContent: {
                           turns: [{
-                            role: "user",
                             parts: [{
                               functionResponse: {
                                 name: "changePhoto",
-                                response: { result: "Photo changed successfully", newContext }
+                                response: { result: newContext }
                               }
                             }]
                           }],
@@ -350,6 +348,7 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
                   }
                 }
                 if (part.inlineData?.mimeType?.startsWith("audio/pcm")) {
+                  setIsAiTalking(true);
                   playAudioChunk(part.inlineData.data);
                 }
               }
