@@ -4,7 +4,7 @@ import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'dummy_key' });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'dummy_key' });
     const { transcript, photoId, caretakerName } = await request.json();
 
     if (!transcript) {
