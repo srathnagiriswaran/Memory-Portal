@@ -34,14 +34,22 @@ Because the system serves two entirely different user contexts from the same bac
 
 The application follows a monolithic Next.js App Router structure:
 
-*   `/src/app/studio`: The Caretaker Portal UI. Handles uploads, queue management, and Family Graph CRUD operations.
-*   `/src/app/frame`: The Magic Frame PWA. Full-screen, NoSleep-enabled React application managing the ambient display and interactive Voice Activity Detection (VAD) states.
-*   `/src/hooks/useGeminiLive.ts`: The core conversational engine. Manages WebSockets, raw PCM audio capture/playback, client-side VAD (loudness debouncing), and Tool Calling responses (`changePhoto`).
+*   `/src/app/studio`: The Caretaker Portal UI. Handles uploads, queue management, manual and voice context entry, inline memory editing, deletion, and Family Graph CRUD operations.
+*   `/src/app/frame`: The Magic Frame PWA. Full-screen, NoSleep-enabled React application managing the ambient display (prioritizing newest unshown photos) and interactive Voice Activity Detection (VAD) states.
+*   `/src/hooks/useGeminiLive.ts`: The core conversational engine. Manages WebSockets, raw PCM audio capture/playback, client-side VAD (loudness debouncing), and Tool Calling responses (`changePhoto`, `endSession`). It leverages semantic understanding to map conversational entities (like family member names) to available photo contexts.
 *   `/src/app/api/...`: Next.js Route Handlers.
-    *   `/upload-photo` & `/upload-voice`: Secure endpoints writing to Firebase Storage and triggering GCP Speech-to-Text.
+    *   `/upload-photo`, `/upload-voice`, & `/upload-text`: Secure endpoints writing to Firebase Storage, managing context, and triggering GCP Speech-to-Text.
     *   `/family-graph` & `/patient`: CRUD for the context graph. Secured by Dual-Auth.
     *   `/harvest`: Receives transcripts, prompts Gemini 2.5 Flash for facts, and writes directly back to the specific memory's `learnedFacts` array.
     *   `/gemini-key`: Secure endpoint to deliver the Gemini API key to authorized frontend clients, preventing bundle exposure.
+    *   `/frame-setup`: Secure endpoint generating connection tokens for Magic Frames.
+
+## Key Features & Enhancements
+*   **Smart Photo Prioritization:** The Magic Frame tracks locally which photos have been viewed, ensuring the patient always sees newly uploaded memories first before cycling randomly.
+*   **Multi-modal Context Entry:** Caregivers can anchor memories via voice (transcribed by GCP Speech-to-Text) or by typing directly, ensuring names and family references are spelled perfectly for the AI.
+*   **Semantic Tool Calling:** The Gemini AI actively listens for entities (names, objects) mentioned by the user and cross-references them against the catalog of typed/transcribed memory contexts. It then autonomously calls the `changePhoto` tool to visually support the conversation.
+*   **Graceful AI Session Management:** The AI is instructed to recognize conversational closing cues (e.g., "I'm tired," "goodbye") and will call an `endSession` tool to transition the frame back to its ambient, non-listening state seamlessly.
+*   **Inline Editing & Vault Management:** Full CRUD control over the active vault allowing caregivers to delete old memories or tweak context on the fly without breaking the patient's experience.
 
 ## Architecture Diagram
 
