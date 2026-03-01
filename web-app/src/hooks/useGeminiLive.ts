@@ -12,7 +12,7 @@ INSTRUCTIONS:
 5. Do not act like an AI or a computer. Act like a kind friend sitting next to them.
 6. Start the conversation by warmly commenting on the photo using the background information provided.
 7. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.
-8. PHOTO NAVIGATION (CRITICAL): You have access to a 'changePhoto' tool. If the user brings up a topic, a memory, a person, or an object that is NOT in the current photo (e.g., "I remember planting an orange", "I miss my dog"), you MUST immediately call the 'changePhoto' tool with that theme (e.g., "orange", "dog") to pull up a relevant photo from their album. Do not just talk about it—SHOW them by using the tool.
+8. PHOTO NAVIGATION (CRITICAL): You have access to a 'changePhoto' tool. If the user brings up a topic, a memory, a person, or an object that is NOT in the current photo (e.g., "I remember planting an orange", "I miss my dog"), you MUST immediately stop talking and CALL THE 'changePhoto' TOOL with that theme (e.g., "orange", "dog"). DO NOT ANSWER IN TEXT FIRST. Call the tool first so the user can see the new photo before you comment on it.
 9. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool to pivot to a happy, calming, or different memory to regulate their emotions.
 10. FAMILY KNOWLEDGE: Use any provided family knowledge graph context seamlessly as if you've always known their family. Actively draw connections between what the user says and the hobbies, details, or relationships of their family members to make the conversation deeply personal (e.g., "That reminds me of your daughter Sarah's love for gardening!").`;
 
@@ -61,6 +61,8 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
     isMutedRef.current = isMuted;
   }, [isMuted]);
 
+  const loudFramesRef = useRef(0);
+
   const startAudioCapture = useCallback(() => {
     if (!streamRef.current || !captureCtxRef.current) return;
     const audioCtx = captureCtxRef.current;
@@ -83,12 +85,19 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
         lastInteractionTimeRef.current = Date.now();
       }
 
+      // Track sustained loud frames for VAD (to ignore short clicks/noise)
+      if (rms > 0.1) {
+        loudFramesRef.current += 1;
+      } else {
+        loudFramesRef.current = 0;
+      }
+
       // If muted or not connected/ready, just return without sending audio
       if (wsRef.current?.readyState !== WebSocket.OPEN || !setupDoneRef.current || isMutedRef.current) return;
 
-      // Basic VAD (Voice Activity Detection) - if user speaks loud enough, interrupt AI
-      if (rms > 0.05 && isAiTalkingRef.current) { // threshold might need tuning (0.01 - 0.1)
-        console.log("[GeminiLive] Client-side VAD detected user speech, sending clientContent to interrupt");
+      // Better VAD (Voice Activity Detection) - interrupt only if sustained loud noise (e.g. 3 frames = ~0.75s)
+      if (loudFramesRef.current > 2 && isAiTalkingRef.current) { 
+        console.log("[GeminiLive] Client-side VAD detected sustained user speech, sending clientContent to interrupt");
         
         // Force the client to send a message to interrupt the server's generation
         if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -114,6 +123,7 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
         activeSourcesRef.current = [];
         nextPlayTimeRef.current = 0;
         setIsAiTalking(false);
+        loudFramesRef.current = 0; // Reset
       }
       
       const pcm16 = new Int16Array(inputData.length);
@@ -195,7 +205,13 @@ export function useGeminiLive(options: { onChangePhoto?: (theme: string) => stri
       }
 
       try {
-        const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mic = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        });
         streamRef.current = mic;
         captureCtxRef.current = new AudioContext({ sampleRate: 16000 });
         playbackCtxRef.current = new AudioContext();

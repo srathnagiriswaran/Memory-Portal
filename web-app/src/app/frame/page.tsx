@@ -34,7 +34,7 @@ export default function MagicFrame() {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   const onChangePhoto = useCallback((theme: string) => {
-    console.log("AI requested photo change for theme:", theme);
+    console.log("🔥 AI TRIGGERED TOOL: changePhoto for theme:", theme);
     // Simple search: find first memory where transcription, caretakerName, or learnedFacts includes the theme
     const lowerTheme = theme.toLowerCase();
     const index = memories.findIndex(m => 
