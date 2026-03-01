@@ -30,6 +30,7 @@ export function useGeminiLive() {
   const pendingContextRef = useRef<string>("");
   const setupDoneRef = useRef(false);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+  const lastInteractionTimeRef = useRef<number>(Date.now());
 
   const [isMuted, setIsMuted] = useState(false);
 
@@ -43,6 +44,9 @@ export function useGeminiLive() {
 
   useEffect(() => {
     isAiTalkingRef.current = isAiTalking;
+    if (isAiTalking) {
+      lastInteractionTimeRef.current = Date.now();
+    }
   }, [isAiTalking]);
 
   useEffect(() => {
@@ -65,6 +69,11 @@ export function useGeminiLive() {
       }
       const rms = Math.sqrt(sum / inputData.length);
       setVolume(rms);
+
+      // Update last interaction time if the user is speaking loud enough
+      if (rms > 0.05) {
+        lastInteractionTimeRef.current = Date.now();
+      }
 
       // If muted or not connected/ready, just return without sending audio
       if (wsRef.current?.readyState !== WebSocket.OPEN || !setupDoneRef.current || isMutedRef.current) return;
@@ -325,6 +334,21 @@ export function useGeminiLive() {
     }
     setState("disconnected");
   }, []);
+
+  // Idle timeout detector (e.g., 2 minutes of silence)
+  useEffect(() => {
+    const IDLE_TIMEOUT_MS = 120000; // 2 minutes
+    const interval = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN && !isAiTalkingRef.current) {
+        if (Date.now() - lastInteractionTimeRef.current > IDLE_TIMEOUT_MS) {
+          console.log("[GeminiLive] Auto-disconnecting due to 2 minutes of inactivity.");
+          disconnect();
+        }
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [disconnect]);
 
   useEffect(() => {
     return () => {
