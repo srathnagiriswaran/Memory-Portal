@@ -718,7 +718,17 @@ export default function StudioDashboard() {
                             <Edit2 className="w-4 h-4" />
                           </button>
                         </div>
-                        <span className="text-xs text-gray-400 mt-auto">From: {memory.caretakerName || "Family"}</span>
+                        {memory.learnedFacts && memory.learnedFacts.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <span className="text-xs font-medium text-emerald-700">Patient Memories:</span>
+                            <ul className="text-xs text-gray-500 list-disc list-inside">
+                              {memory.learnedFacts.map((fact: string, idx: number) => (
+                                <li key={idx} className="line-clamp-2">{fact}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <span className="text-xs text-gray-400 mt-auto pt-2">From: {memory.caretakerName || "Family"}</span>
                       </>
                     )}
                   </div>
