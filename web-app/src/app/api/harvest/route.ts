@@ -17,12 +17,18 @@ export async function POST(request: Request) {
     }
 
     const prompt = `
-      You are an expert at extracting useful, emotional, and factual memories from conversations with older adults.
+      You are an expert at extracting useful, positive, and factual memories from conversations with older adults.
       Below is a transcript or summary of a conversation between an AI companion and a senior looking at a family photo.
       
       Task:
-      1. Extract any newly discovered facts, memories, or strong emotional reactions that the family might want to know (as an array of strings). If there are none, return an empty array [].
+      1. Extract any newly discovered facts, happy memories, or positive emotional reactions that the family might want to know (as an array of strings). If there are none, return an empty array [].
       2. Provide a 1-2 sentence emotional summary of the conversation. How did the patient sound? Were they happy, nostalgic, confused?
+      
+      CRITICAL RULES FOR EXTRACTING FACTS:
+      - DO NOT extract or store anything negative, distressing, or sad. We do not want to bring up negative memories in future conversations.
+      - Focus ONLY on positive, neutral, or factual observations.
+      - Ensure facts are grounded in the transcript. DO NOT hallucinate details.
+      - Frame the facts in a way that is safe and pleasant to bring up later (e.g., "Loved remembering the trip to the beach").
 
       Return the output strictly as a JSON object with the following structure. Do NOT include markdown formatting or backticks.
       {

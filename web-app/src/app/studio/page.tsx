@@ -119,6 +119,9 @@ export default function StudioDashboard() {
       });
       setHarvestedMemories((prev) => prev.filter((m) => m.id !== id));
       flash(action === 'verify' ? "Memory verified and saved!" : "Memory discarded");
+      if (action === 'verify') {
+        fetchAll(); // Refresh the vault to show the new memories
+      }
     } catch (err) {
       console.error("Error updating memory:", err);
       flash("Failed to update memory", "err");
