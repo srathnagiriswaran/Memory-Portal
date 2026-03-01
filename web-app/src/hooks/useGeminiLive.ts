@@ -263,6 +263,9 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
             } else {
               data = JSON.parse(event.data);
             }
+            
+            // Uncomment to see all messages for debugging
+            // console.log("[GeminiLive] Raw message:", data);
 
             if (data.setupComplete) {
               console.log("[GeminiLive] Setup complete — session ready");
@@ -305,6 +308,65 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
               activeSourcesRef.current = [];
               nextPlayTimeRef.current = 0;
               setIsAiTalking(false);
+            }
+
+            // Handle Tool Calls (Live API sends these outside of modelTurn)
+            if (data.toolCall) {
+              console.log("[GeminiLive] Received top-level toolCall:", data.toolCall);
+              const functionCalls = data.toolCall.functionCalls;
+              if (functionCalls && functionCalls.length > 0) {
+                for (const call of functionCalls) {
+                  if (call.name === "changePhoto" && onChangePhotoRef.current) {
+                    const newContext = onChangePhotoRef.current(call.args?.photoId || "");
+                    if (ws.readyState === WebSocket.OPEN) {
+                      ws.send(JSON.stringify({
+                        clientContent: {
+                          turns: [{
+                            role: "user",
+                            parts: [{
+                              functionResponse: {
+                                name: "changePhoto",
+                                id: call.id,
+                                response: { result: newContext }
+                              }
+                            }]
+                          }],
+                          turnComplete: true
+                        }
+                      }));
+                    }
+                  }
+                }
+              }
+            }
+
+            if (data.serverContent?.toolCall) {
+              console.log("[GeminiLive] Received serverContent.toolCall:", data.serverContent.toolCall);
+              const functionCalls = data.serverContent.toolCall.functionCalls;
+              if (functionCalls && functionCalls.length > 0) {
+                for (const call of functionCalls) {
+                  if (call.name === "changePhoto" && onChangePhotoRef.current) {
+                    const newContext = onChangePhotoRef.current(call.args?.photoId || "");
+                    if (ws.readyState === WebSocket.OPEN) {
+                      ws.send(JSON.stringify({
+                        clientContent: {
+                          turns: [{
+                            role: "user",
+                            parts: [{
+                              functionResponse: {
+                                name: "changePhoto",
+                                id: call.id,
+                                response: { result: newContext }
+                              }
+                            }]
+                          }],
+                          turnComplete: true
+                        }
+                      }));
+                    }
+                  }
+                }
+              }
             }
 
             if (data.serverContent?.modelTurn) {
