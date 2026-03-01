@@ -25,9 +25,10 @@
 - [x] **Tool Calling (`endSession`)**: Graceful AI session exits. Enforced via strict prompt guidelines and a 10-second backend failsafe timeout to prevent hanging.
 - [x] **Smart Photo Prioritization**: Magic Frame tracks viewed photos via `localStorage` to always debut new memories first.
 - [x] **Family Knowledge Graph**: Caretaker Studio UI and endpoints to dynamically manage patient profiles and family members, injected into the AI's context.
-- [x] **Memory Harvesting Feedback Loop**: Two-phase verification. Gemini extracts positive facts and emotional summaries to a staging area. Caregivers review, edit, and approve these facts before they are permanently attached to photos as "Patient Memories".
-- [x] **AI Caregiver Insights**: Generates actionable insights (Overall Mood, Current Fixations, Upload Suggestions) by analyzing recent harvested sessions. Implemented caching and auto-refresh logic.
+- [x] **Memory Harvesting Feedback Loop**: Two-phase verification. Gemini extracts positive facts and emotional summaries to a staging area. Caregivers review, edit, and approve these facts before they are permanently attached to photos as "Captured Memories".
+- [x] **AI Caregiver Insights**: Generates actionable insights (Overall Mood, Recent Topics, Upload Suggestions) by analyzing recent harvested sessions. Implemented caching and auto-refresh logic. Added clear descriptive UI subtext.
 - [x] **Emotional Tone Detection & Guardrails**: Strict instructions to validate user emotions, pivot to calming memories, and NEVER hallucinate or bring up negative/distressing topics.
+- [x] **UI/UX Polish**: Replaced clinical terms ("Patient") with warmer terms ("Loved One") throughout the UI and AI prompts. Fixed OAuth profile picture rendering bugs.
 
 ### Remaining Before Submission
 - [ ] Dockerization (`Dockerfile` for Next.js)
