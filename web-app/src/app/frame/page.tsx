@@ -245,7 +245,8 @@ function MagicFrameContent() {
           transcript: finalTranscript,
           photoId: currentMemory?.id,
           caretakerName: currentMemory?.caretakerName,
-          photoUrl: currentMemory?.photoUrl
+          photoUrl: currentMemory?.photoUrl,
+          patientName: patientName // Pass patient name to personalize the summary
         })
       });
       console.log("Memory Harvest complete.");

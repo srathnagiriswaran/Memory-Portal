@@ -609,13 +609,18 @@ export default function StudioDashboard() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 mb-1">New insight from {memory.caretakerName || "a recent"} session</h3>
+                    <h3 className="font-medium text-gray-900 mb-1">Session Summary &amp; Extracted Memories</h3>
                     {memory.emotionalSummary && (
-                      <p className="text-sm text-emerald-700 bg-emerald-50 p-3 rounded-lg mb-3 italic">
-                        {memory.emotionalSummary}
-                      </p>
+                      <div className="mb-4">
+                        <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-1 block">Conversation Vibe</span>
+                        <p className="text-sm text-emerald-800 bg-emerald-50/50 border border-emerald-100 p-3 rounded-lg italic">
+                          {memory.emotionalSummary}
+                        </p>
+                      </div>
                     )}
                     
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">New Facts Learned</span>
                     {editingHarvestId === memory.id ? (
                       <div className="space-y-2">
                         {editHarvestFacts.map((fact, idx) => (
@@ -652,6 +657,7 @@ export default function StudioDashboard() {
                         ))}
                       </ul>
                     )}
+                    </div>
                   </div>
                   <div className="flex flex-col gap-2 w-full sm:w-auto">
                     {editingHarvestId === memory.id ? (
