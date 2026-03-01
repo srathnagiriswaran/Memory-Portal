@@ -102,7 +102,25 @@ export default function MagicFrame() {
         const data = await memRes.json();
         if (data.memories && data.memories.length > 0) {
           setMemories(data.memories);
-          setCurrentPhotoIndex(Math.floor(Math.random() * data.memories.length));
+
+          // Find the newest unshown photo
+          const viewedIds = JSON.parse(localStorage.getItem("viewed_memories") || "[]");
+          const unshownIndex = data.memories.findIndex((m: any) => !viewedIds.includes(m.id));
+          
+          let initialIndex = 0;
+          if (unshownIndex !== -1) {
+            initialIndex = unshownIndex;
+          } else {
+            // Fallback to random if all have been seen
+            initialIndex = Math.floor(Math.random() * data.memories.length);
+          }
+          
+          setCurrentPhotoIndex(initialIndex);
+          
+          // Mark this initial photo as viewed
+          if (!viewedIds.includes(data.memories[initialIndex].id)) {
+            localStorage.setItem("viewed_memories", JSON.stringify([...viewedIds, data.memories[initialIndex].id]));
+          }
           
           const catalog = data.memories.map((m: any) => `[ID: ${m.id}] - Added by: ${m.caretakerName}. Context: "${m.transcription}". ${m.learnedFacts && m.learnedFacts.length > 0 ? `Learned facts: ${m.learnedFacts.join(', ')}` : ''}`).join('\n');
           setPhotoCatalogText(`AVAILABLE PHOTO ALBUM CATALOG:\n${catalog}`);
@@ -136,11 +154,30 @@ export default function MagicFrame() {
     if (isActiveSession || memories.length <= 1) return;
     
     const interval = setInterval(() => {
-      setCurrentPhotoIndex((prev) => (prev + 1) % memories.length);
+      setCurrentPhotoIndex((prev) => {
+        const viewedIds = JSON.parse(localStorage.getItem("viewed_memories") || "[]");
+        
+        // Find next unshown memory
+        const nextUnshownIndex = memories.findIndex(m => !viewedIds.includes(m.id));
+        
+        let nextIndex;
+        if (nextUnshownIndex !== -1) {
+          nextIndex = nextUnshownIndex;
+        } else {
+          nextIndex = (prev + 1) % memories.length;
+        }
+
+        // Mark as viewed
+        if (!viewedIds.includes(memories[nextIndex].id)) {
+          localStorage.setItem("viewed_memories", JSON.stringify([...viewedIds, memories[nextIndex].id]));
+        }
+
+        return nextIndex;
+      });
     }, 10000); // Change photo every 10 seconds
 
     return () => clearInterval(interval);
-  }, [isActiveSession, memories.length]);
+  }, [isActiveSession, memories]);
 
   const requestFullscreen = async () => {
     if (!document.fullscreenElement) {
