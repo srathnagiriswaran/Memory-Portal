@@ -16,16 +16,17 @@ This companion doesn't just "describe an image." It uses a deep **Family Knowled
 
 ---
 
-## ✨ Features
+## ✨ The "Wow" Factor: Platform Features
 
-*   **Dual Interfaces:**
-    *   **Caretaker Studio:** A secure, authenticated web portal for family members to drag-and-drop photos, define the family tree, and anchor memories using either transcribed voice notes (via GCP Speech-to-Text) or manual text entry.
-    *   **Magic Frame (Patient PWA):** A zero-friction, kiosk-mode tablet interface. No logins, no typing, no complex UI. Just photos and a microphone button.
-*   **True Live Agent (Barge-in Ready):** Built entirely on WebSockets directly communicating with the `gemini-2.5-flash-native-audio-latest` model. The patient can interrupt the AI at any time, and the AI will naturally stop and listen—crucial for managing agitation or confusion.
-*   **Semantic Photo Surfacing (Tool Calling):** The AI listens to the conversation and autonomously calls a `changePhoto` tool to visually support what the patient is talking about.
-*   **Memory Harvesting:** After a session ends, a background Gemini Pro model processes the transcript to extract new facts the patient shared (e.g., "Oh, that was the day I lost my hat!"). These facts are appended to the photo's context, making the AI smarter for the next session.
-*   **Smart Photo Prioritization:** The Magic Frame tracks what it has shown locally, guaranteeing that newly uploaded photos are debuted first before falling back into a random ambient loop.
-*   **Graceful Exits:** The AI recognizes when the user is tired or says goodbye, autonomously invoking an `endSession` tool to return the frame to its quiet, ambient state.
+Memory Portal isn't just a technical achievement; it's designed to create magical, emotional moments that bridge generations. 
+
+*   **🖼️ The Interactive "Magic" Frame:** It's not just a passive digital photo album. With a single tap of "Reminisce," the ambient display transforms into a deeply engaging, low-latency voice companion that *knows* the stories behind the pictures. It's a zero-friction interface—no typing, no logins, just conversation.
+*   **🧠 Semantic Photo Surfacing (Tool Calling):** The AI actively listens to the flow of conversation. If a loved one mentions "fishing with John," the Gemini AI autonomously triggers a `changePhoto` tool to instantly bring up the fishing trip photo on the screen, creating a serendipitous and fluid reminiscing experience.
+*   **🌱 AI Memory Harvesting:** The system learns, grows, and remembers. After every chat, a background Gemini model quietly distills new facts and emotional insights from the transcript. It automatically builds a richer, long-term memory graph so the AI remembers what the loved one shared for their next session.
+*   **💡 Actionable Caregiver Insights:** Families don't just get raw transcripts; they get peace of mind. The Caretaker Studio provides a beautiful dashboard summarizing their loved one's overall mood, current topics of fixation, and AI-driven suggestions for what specific photos to upload next to spark joy.
+*   **🎙️ Multi-Modal Family Vault:** Caregivers don't have to type long paragraphs. They can simply speak into their phones to drop voice notes on photos (powered by GCP Speech-to-Text). This instantly anchors the image with deep, personal context (names, relationships, inside jokes) for the AI to weave into conversation.
+*   **🤝 Barge-In Ready & Empathetic:** Powered by the Gemini Live WebSocket API (`gemini-2.5-flash-native-audio-latest`), the AI can be interrupted naturally. It stops, listens, and responds just like a human. Strict anti-hallucination and positivity guardrails guarantee every interaction is safe, grounded, and uplifting.
+*   **👋 Graceful Session Management:** The AI is trained to recognize conversational closing cues (e.g., "I'm tired," "goodbye") and will autonomously invoke an `endSession` tool to naturally say farewell and transition the frame back to its quiet, ambient state.
 
 ---
 

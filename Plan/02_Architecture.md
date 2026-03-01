@@ -44,12 +44,17 @@ The application follows a monolithic Next.js App Router structure:
     *   `/gemini-key`: Secure endpoint to deliver the Gemini API key to authorized frontend clients, preventing bundle exposure.
     *   `/frame-setup`: Secure endpoint generating connection tokens for Magic Frames.
 
-## Key Features & Enhancements
-*   **Smart Photo Prioritization:** The Magic Frame tracks locally which photos have been viewed, ensuring the patient always sees newly uploaded memories first before cycling randomly.
-*   **Multi-modal Context Entry:** Caregivers can anchor memories via voice (transcribed by GCP Speech-to-Text) or by typing directly, ensuring names and family references are spelled perfectly for the AI.
-*   **Semantic Tool Calling:** The Gemini AI actively listens for entities (names, objects) mentioned by the user and cross-references them against the catalog of typed/transcribed memory contexts. It then autonomously calls the `changePhoto` tool to visually support the conversation.
-*   **Graceful AI Session Management:** The AI is instructed to recognize conversational closing cues (e.g., "I'm tired," "goodbye") and will call an `endSession` tool to transition the frame back to its ambient, non-listening state seamlessly.
-*   **Inline Editing & Vault Management:** Full CRUD control over the active vault allowing caregivers to delete old memories or tweak context on the fly without breaking the patient's experience.
+## ✨ The "Wow" Factor: Core Features
+
+Memory Portal isn't just a technical achievement; it's designed to create magical, emotional moments. Here is what makes the platform truly special:
+
+*   **Interactive "Magic" Frame:** It's not just a passive digital photo album. With a single tap of "Reminisce," the ambient display transforms into a deeply engaging, low-latency voice companion that knows the stories behind the pictures.
+*   **Semantic Photo Surfacing (Tool Calling):** The AI actively listens! If a loved one mentions "fishing with John," the Gemini AI autonomously triggers a `changePhoto` tool to instantly bring up the fishing trip photo on the screen, creating a serendipitous and fluid experience.
+*   **AI Memory Harvesting:** The system learns and remembers. After every chat, a background Gemini model quietly distills new facts and emotional insights from the transcript. It automatically builds a richer, long-term memory graph so the AI remembers what the loved one said for their next session.
+*   **Actionable Caregiver Insights:** Families don't just get raw transcripts; they get peace of mind. The Caretaker Studio provides a beautiful dashboard summarizing their loved one's overall mood, current topics of fixation, and AI-driven suggestions for what specific photos to upload next to spark joy.
+*   **Multi-Modal Family Vault:** Caregivers don't have to type long paragraphs. They can simply speak into their phones to drop voice notes on photos (powered by GCP Speech-to-Text). This instantly anchors the image with deep, personal context (names, relationships, inside jokes) for the AI to use.
+*   **Barge-In Ready & Empathetic:** Powered by the Gemini Live WebSocket API (`gemini-2.5-flash-native-audio-latest`), the AI can be interrupted naturally. It stops, listens, and responds just like a human. Strict anti-hallucination and positivity guardrails guarantee every interaction is safe, grounded, and uplifting.
+*   **Graceful Session Management:** The AI is trained to recognize conversational closing cues (e.g., "I'm tired," "goodbye") and will autonomously invoke an `endSession` tool to transition the frame back to its quiet, ambient state.
 
 ## Architecture Diagram
 
