@@ -403,7 +403,7 @@ export default function StudioDashboard() {
           <div className="flex items-center gap-3">
             <span className="text-gray-600 font-medium hidden sm:inline">{session?.user?.name}</span>
             {session?.user?.image ? (
-              <img src={session.user.image} alt="Profile" className="w-8 h-8 rounded-full border" />
+              <img src={session.user.image} alt="Profile" className="w-8 h-8 rounded-full border object-cover" referrerPolicy="no-referrer" />
             ) : (
               <div className="w-8 h-8 rounded-full bg-gray-200 border flex items-center justify-center">
                 {session?.user?.name?.charAt(0) || "U"}
