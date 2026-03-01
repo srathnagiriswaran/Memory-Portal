@@ -11,15 +11,51 @@ interface Memory {
   photoUrl: string;
   caretakerName: string;
   transcription: string;
+  learnedFacts?: string[];
 }
 
+// Mock Family Knowledge Graph for the hackathon WOW factor
+const FAMILY_KNOWLEDGE_GRAPH = `
+FAMILY KNOWLEDGE GRAPH:
+- User's Name: Grandpa John
+- Primary Caregiver (Daughter): Sarah
+- Grandson: Mark (Sarah's son)
+- Late Wife: Mary
+- Pets: A golden retriever named Buster (from the 90s)
+- Hobbies: Used to love gardening and restoring old cars.
+`;
+
 export default function MagicFrame() {
-  const { isAwake, enable } = useNoSleep();
-  const { state: geminiState, error: geminiError, transcript, connect, disconnect, isAiTalking, volume, isMuted, toggleMute } = useGeminiLive();
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isActiveSession, setIsActiveSession] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+  const onChangePhoto = useCallback((theme: string) => {
+    console.log("AI requested photo change for theme:", theme);
+    // Simple search: find first memory where transcription, caretakerName, or learnedFacts includes the theme
+    const lowerTheme = theme.toLowerCase();
+    const index = memories.findIndex(m => 
+      m.transcription.toLowerCase().includes(lowerTheme) || 
+      m.caretakerName.toLowerCase().includes(lowerTheme) ||
+      m.learnedFacts?.some(f => f.toLowerCase().includes(lowerTheme))
+    );
+    
+    if (index !== -1) {
+      setCurrentPhotoIndex(index);
+      const mem = memories[index];
+      const facts = mem.learnedFacts && mem.learnedFacts.length > 0 ? ` Learned facts: ${mem.learnedFacts.join(', ')}.` : '';
+      return `Success! I have changed the photo to a new one. Background info: This was added by ${mem.caretakerName}. Note: "${mem.transcription}".${facts} Please comment on this new photo.`;
+    } else {
+      // Pick a random one to simulate it if not found exactly
+      const randomIdx = Math.floor(Math.random() * memories.length);
+      setCurrentPhotoIndex(randomIdx);
+      const mem = memories[randomIdx];
+      const facts = mem.learnedFacts && mem.learnedFacts.length > 0 ? ` Learned facts: ${mem.learnedFacts.join(', ')}.` : '';
+      return `I could not find an exact match for "${theme}", so I showed a different random memory instead. Background info: Added by ${mem.caretakerName}. Note: "${mem.transcription}".${facts} Please comment on this photo instead.`;
+    }
+  }, [memories]);
+
+  const { isAwake, enable } = useNoSleep();
+  const { state: geminiState, error: geminiError, transcript, connect, disconnect, isAiTalking, volume, isMuted, toggleMute } = useGeminiLive({ onChangePhoto });
 
   // Fetch active memories
   useEffect(() => {
@@ -74,8 +110,16 @@ export default function MagicFrame() {
     setIsActiveSession(true);
     const currentMemory = memories[currentPhotoIndex];
     
-    // Pass real context from Firestore
-    const context = `This photo was added by ${currentMemory?.caretakerName || "a loved one"}. They left this note about it: "${currentMemory?.transcription || "It's a beautiful memory."}"`;
+    // Pass real context from Firestore + Mock Knowledge Graph
+    const facts = currentMemory?.learnedFacts && currentMemory.learnedFacts.length > 0 
+      ? ` Things we learned in past conversations about this photo: ${currentMemory.learnedFacts.join('. ')}.` 
+      : '';
+      
+    const context = `
+      ${FAMILY_KNOWLEDGE_GRAPH}
+      
+      This photo was added by ${currentMemory?.caretakerName || "a loved one"}. They left this note about it: "${currentMemory?.transcription || "It's a beautiful memory."}"${facts}
+    `.trim();
     
     await connect(context);
   };

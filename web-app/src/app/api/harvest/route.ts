@@ -46,6 +46,22 @@ export async function POST(request: Request) {
         createdAt: new Date().toISOString(),
       };
       await adminDb.collection("harvested_memories").add(harvestDoc);
+
+      // Append directly to the memory document to complete the feedback loop
+      if (photoId && photoId !== "unknown") {
+        try {
+          const memoryRef = adminDb.collection("memories").doc(photoId);
+          const doc = await memoryRef.get();
+          if (doc.exists) {
+            const existingFacts = doc.data()?.learnedFacts || [];
+            await memoryRef.update({
+              learnedFacts: [...existingFacts, ...newFacts]
+            });
+          }
+        } catch (e) {
+          console.error("Failed to update original memory with learned facts:", e);
+        }
+      }
     }
 
     return NextResponse.json({ success: true, facts: newFacts });

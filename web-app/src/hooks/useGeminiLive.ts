@@ -11,11 +11,13 @@ INSTRUCTIONS:
 4. If the user states a fact that contradicts the background information, NEVER correct them. Validate their feeling ("It does look like that!"), and gently offer the metadata as something a family member shared ("[Caregiver] mentioned that...").
 5. Do not act like an AI or a computer. Act like a kind friend sitting next to them.
 6. Start the conversation by warmly commenting on the photo using the background information provided.
-7. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.`;
+7. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.
+8. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool to pivot to a happy, calming, or different memory to regulate their emotions.
+9. FAMILY KNOWLEDGE: Use any provided family knowledge graph context seamlessly as if you've always known their family.`;
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
-export function useGeminiLive() {
+export function useGeminiLive(options: { onChangePhoto?: (theme: string) => string } = {}) {
   const [state, setState] = useState<GeminiLiveState>("disconnected");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string[]>([]);
@@ -41,6 +43,11 @@ export function useGeminiLive() {
   // Keep refs updated for the audio processor callback
   const isAiTalkingRef = useRef(isAiTalking);
   const isMutedRef = useRef(isMuted);
+  const onChangePhotoRef = useRef(options.onChangePhoto);
+
+  useEffect(() => {
+    onChangePhotoRef.current = options.onChangePhoto;
+  }, [options.onChangePhoto]);
 
   useEffect(() => {
     isAiTalkingRef.current = isAiTalking;
@@ -213,6 +220,19 @@ export function useGeminiLive() {
                 systemInstruction: {
                   parts: [{ text: SYSTEM_INSTRUCTION }],
                 },
+                tools: [{
+                  functionDeclarations: [{
+                    name: "changePhoto",
+                    description: "Changes the displayed photo based on a theme, person, or mood to guide the conversation. Use this when the user mentions another topic or if their emotional tone suggests a change of scenery would help.",
+                    parameters: {
+                      type: "OBJECT",
+                      properties: {
+                        theme: { type: "STRING", description: "The theme, person, or mood to search for in the album (e.g., 'cat', 'wedding', 'happy')." }
+                      },
+                      required: ["theme"]
+                    }
+                  }]
+                }]
               },
             })
           );
@@ -269,6 +289,29 @@ export function useGeminiLive() {
             if (data.serverContent?.modelTurn) {
               setIsAiTalking(true);
               for (const part of data.serverContent.modelTurn.parts ?? []) {
+                if (part.functionCall) {
+                  const { name, args } = part.functionCall;
+                  console.log("[GeminiLive] Tool call received:", name, args);
+                  if (name === "changePhoto" && onChangePhotoRef.current) {
+                    const newContext = onChangePhotoRef.current(args.theme || "");
+                    if (ws.readyState === WebSocket.OPEN) {
+                      ws.send(JSON.stringify({
+                        clientContent: {
+                          turns: [{
+                            role: "user",
+                            parts: [{
+                              functionResponse: {
+                                name: "changePhoto",
+                                response: { result: "Photo changed successfully", newContext }
+                              }
+                            }]
+                          }],
+                          turnComplete: true
+                        }
+                      }));
+                    }
+                  }
+                }
                 if (part.text) {
                   // Aggressively strip out thoughts enclosed in asterisks (e.g., **Thought**)
                   // and strip out single asterisks just in case
