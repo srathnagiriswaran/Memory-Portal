@@ -119,6 +119,11 @@ resource "google_cloud_run_v2_service" "memory_portal_app" {
         name  = "NODE_ENV"
         value = "production"
       }
+
+      env {
+        name  = "NEXTAUTH_URL"
+        value = var.nextauth_url
+      }
       
       # Dynamically inject all secrets from Google Secret Manager as environment variables
       dynamic "env" {

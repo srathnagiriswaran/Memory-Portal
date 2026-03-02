@@ -15,6 +15,11 @@ variable "image_url" {
   default     = "gcr.io/cloudrun/hello" # Placeholder for initial run
 }
 
+variable "nextauth_url" {
+  description = "The canonical URL of the deployed application (e.g., https://memory-portal-app-...run.app)"
+  type        = string
+}
+
 # ------------------------------------------------------------------------------
 # APPLICATION SECRETS (Saved to Google Secret Manager)
 # ------------------------------------------------------------------------------
