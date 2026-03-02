@@ -27,10 +27,18 @@ Before deploying, you need to configure your variables. The actual secrets are r
    cp terraform.tfvars.example terraform.tfvars
    ```
 2. Open `terraform.tfvars` and fill in your actual project ID, region, and all the required secret values (Gemini API Key, Google OAuth credentials, Firebase credentials, etc.).
+3. Note that `image_url` is automatically populated by the deployment script, so you don't need to specify it initially.
 
 > **Note:** The `terraform.tfvars` file is explicitly ignored in `.gitignore` to ensure you don't accidentally commit your secrets to version control.
 
-### 2. Initialize Terraform
+### 2. State File Management
+
+By default, Terraform stores its state locally in a `terraform.tfstate` file. **This file is explicitly ignored in `.gitignore`** because it can contain sensitive information in plaintext (including the values of the secrets you just created). 
+
+*   **Single Developer:** Running locally with the ignored `.tfstate` file is fine for solo development.
+*   **Multi-Developer / Production Team:** If multiple people need to deploy changes or if you run deployments through a CI/CD pipeline (like GitHub Actions), you **must** configure a remote state backend (e.g., using a Google Cloud Storage bucket) so the state is shared and locked securely. Add a `backend "gcs"` block to your `terraform {}` configuration in `main.tf`.
+
+### 3. Initialize Terraform
 
 Navigate to the `terraform` directory and initialize Terraform:
 
@@ -38,54 +46,24 @@ Navigate to the `terraform` directory and initialize Terraform:
 terraform init
 ```
 
-### 3. Apply Terraform (Initial Setup)
+### 4. Deploying the Application (One-Click)
 
-This step will:
-- Enable necessary GCP APIs.
-- Create the Artifact Registry repository.
-- Upload your secrets to Google Secret Manager.
-- Create a placeholder Cloud Run service.
+Instead of manually running Terraform apply and Docker commands every time, we use a unified deployment script that handles the entire build, push, and deploy lifecycle.
+
+Navigate to the root of the project and run:
 
 ```bash
-terraform apply
+./deploy.sh
 ```
 
-### 4. Build and Push the Docker Image
+**What this script does:**
+1.  **Extracts Public Env Vars:** Grabs `NEXT_PUBLIC_` variables from `web-app/.env.local` to bake into the frontend.
+2.  **Builds the Docker Image:** Builds the Next.js app optimized for Cloud Run (`linux/amd64`), tagged with your latest git commit hash.
+3.  **Pushes to Artifact Registry:** Uploads the image to GCP.
+4.  **Updates Terraform:** Automatically modifies `image_url` in your `terraform.tfvars` file to point to the exact new image digest.
+5.  **Applies Infrastructure:** Runs `terraform apply -auto-approve` to provision missing resources (like Secret Manager secrets) and roll out the new container revision to Cloud Run seamlessly.
 
-Navigate back to the `web-app` directory. Because Next.js `NEXT_PUBLIC_*` variables are baked into the frontend build at compile time, you must ensure they are present during the Docker build process.
+### Updating Secrets or App Code in the Future
 
-If you have a local `.env.local` or `.env.production` file containing your `NEXT_PUBLIC_` Firebase config variables, Docker will *not* automatically see them unless you explicitly pass them. Ensure you have an `.env.production` file in your `web-app` directory with the public variables (do *not* include the sensitive backend variables here, those are in Secret Manager now).
-
-Configure Docker to authenticate with GCP Artifact Registry:
-```bash
-gcloud auth configure-docker us-central1-docker.pkg.dev
-```
-
-Build the image (replace `YOUR_GCP_PROJECT_ID`):
-```bash
-cd ../web-app
-docker build -t us-central1-docker.pkg.dev/YOUR_GCP_PROJECT_ID/memory-portal-repo/web-app:latest .
-```
-
-Push the image:
-```bash
-docker push us-central1-docker.pkg.dev/YOUR_GCP_PROJECT_ID/memory-portal-repo/web-app:latest
-```
-
-### 5. Deploy the Actual Image to Cloud Run
-
-Once the image is in Artifact Registry, update the Cloud Run service via the `gcloud` CLI to use your real image. Note that we do **not** need to pass `--set-env-vars` for secrets anymore, because Terraform already configured Cloud Run to pull them from Secret Manager dynamically!
-
-```bash
-gcloud run deploy memory-portal-app \
-  --image us-central1-docker.pkg.dev/YOUR_GCP_PROJECT_ID/memory-portal-repo/web-app:latest \
-  --region us-central1 \
-  --allow-unauthenticated
-```
-
-### Updating Secrets in the Future
-
-If you ever need to rotate a key (e.g., your Gemini API Key or Firebase Private Key):
-1. Update your local `terraform.tfvars` file.
-2. Run `terraform apply` again. Terraform will push the new secret version to Secret Manager.
-3. Because Cloud Run is configured to use the `latest` version of the secrets, the new instances will automatically pick up the new secret the next time a container starts (you may want to manually trigger a new deployment to force all existing instances to recycle).
+If you ever need to rotate a key, update your local `terraform.tfvars` file. 
+If you make code changes in the Next.js application, simply commit your changes locally and run `./deploy.sh` again from the project root!

@@ -123,13 +123,30 @@ npm run dev
 
 ## ☁️ Google Cloud Deployment
 
-This application is designed to be easily containerized and deployed to **Google Cloud Run**.
+This application is designed to be fully containerized and deployed to **Google Cloud Run** using Terraform. We use **Google Secret Manager (GSM)** to manage all sensitive keys, ensuring they are never exposed in plaintext or committed to the repository.
 
-1.  **Dockerize:** A standard Next.js Dockerfile can be used to build the image.
-2.  **Artifact Registry:** Push the image to GCP Artifact Registry.
-3.  **Cloud Run:** Deploy the container, passing all environment variables (or using Google Secret Manager for `GEMINI_API_KEY`, `FIREBASE_PRIVATE_KEY`, etc.). Ensure WebSockets are supported by your Cloud Run configuration (enabled by default).
+### Quick Deploy (One-Click Update)
 
-*(Detailed Terraform/IaC scripts are planned for a future release).*
+Once the initial infrastructure is set up, you can build, push, and deploy a new version of the app seamlessly using the included bash script:
+
+```bash
+./deploy.sh
+```
+
+This script will:
+1. Extract your `NEXT_PUBLIC_` env variables for the Docker build.
+2. Build the Docker image specifically for `linux/amd64` (Cloud Run's architecture) and tag it with your current git commit hash.
+3. Push the image to Google Artifact Registry.
+4. Auto-update the Terraform `terraform.tfvars` file with the newly built image tag.
+5. Run `terraform apply -auto-approve` to seamlessly update the Cloud Run service.
+
+### Infrastructure as Code (Terraform)
+
+All Google Cloud resources are provisioned via Terraform in the `terraform/` directory.
+
+🔗 **[Read the Full Deployment & Terraform Guide Here](./terraform/README.md)**
+
+*Note on State Files:* Terraform state files (`*.tfstate`) are explicitly ignored in `.gitignore` to prevent leaking sensitive information if you are running Terraform locally. For a multi-developer team, consider configuring a GCS backend for remote state storage.
 
 ---
 
