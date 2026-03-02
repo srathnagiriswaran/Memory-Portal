@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import crypto from "crypto";
+import { adminDb } from "@/lib/firebase-admin";
 
 /**
  * Generates a signed token for the Magic Frame device, encoding the familyId (email).
@@ -15,13 +16,26 @@ export function generateFrameToken(email: string): string {
 /**
  * Checks if the request is authorized either via a NextAuth session (Caretaker)
  * or via a secure device token (Magic Frame).
- * Returns the familyId (email) if authorized, or null if not.
+ * Returns the familyId (primary email) if authorized, or null if not.
  */
 export async function getFamilyId(request: Request): Promise<string | null> {
   // 1. Check for NextAuth session (Studio User)
   const session = await getServerSession(authOptions);
   if (session?.user?.email) {
-    return session.user.email;
+    const email = session.user.email.toLowerCase();
+    
+    // Check if this user was invited by a primary caregiver
+    try {
+      const inviteDoc = await adminDb.collection("caregiver_invites").doc(email).get();
+      if (inviteDoc.exists) {
+        return inviteDoc.data()?.primaryEmail || email;
+      }
+    } catch (err) {
+      console.error("Failed to check caregiver invites:", err);
+    }
+    
+    // If not invited to another family, they are their own primary caregiver
+    return email;
   }
 
   // 2. Check for Device Token (Magic Frame)

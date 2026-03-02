@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { adminDb } from "@/lib/firebase-admin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { getFamilyId } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
   try {
@@ -11,20 +12,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const familyId = session.user.email;
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const checkOnly = searchParams.get("check") === "true";
 
+    // Removed .orderBy("createdAt", "desc") to avoid requiring a composite index in Firestore
     const snapshot = await adminDb.collection("harvested_memories")
       .where("familyId", "==", familyId)
-      .orderBy("createdAt", "desc")
-      .limit(30) // Fetch more to allow for filtering
+      .limit(100) // Fetch up to 100 to sort in memory
       .get();
 
-    // Filter out rejected memories so they don't influence insights
-    const allValidMemories = snapshot.docs
+    // Sort by createdAt descending in memory
+    const sortedDocs = snapshot.docs
       .map((doc: any) => ({ id: doc.id, ...doc.data() }))
-      .filter((m: any) => m.status !== 'rejected');
+      .sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+
+    // Filter out rejected memories so they don't influence insights
+    const allValidMemories = sortedDocs.filter((m: any) => m.status !== 'rejected');
 
     if (checkOnly) {
       return NextResponse.json({ 

@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { getFamilyId } from "@/lib/api-auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const familyId = session.user.email;
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const snapshot = await adminDb.collection("harvested_memories")
       .where("familyId", "==", familyId)
@@ -42,7 +46,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const familyId = session.user.email;
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id, action, photoId, facts } = await request.json();
     

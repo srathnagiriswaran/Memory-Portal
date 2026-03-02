@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { adminDb, adminStorage } from "@/lib/firebase-admin";
 import crypto from "crypto";
+import { getFamilyId } from "@/lib/api-auth";
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const familyId = session.user.email;
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const formData = await request.formData();
     const file = formData.get("photo") as File;

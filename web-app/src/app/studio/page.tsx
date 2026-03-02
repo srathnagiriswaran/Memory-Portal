@@ -18,6 +18,11 @@ export default function StudioDashboard() {
   const [patientName, setPatientName] = useState("");
   const [savedPatientName, setSavedPatientName] = useState("");
   const [savingPatient, setSavingPatient] = useState(false);
+  
+  const [invites, setInvites] = useState<any[]>([]);
+  const [newInviteEmail, setNewInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -43,12 +48,13 @@ export default function StudioDashboard() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [pendingRes, activeRes, harvestRes, familyRes, patientRes] = await Promise.all([
+      const [pendingRes, activeRes, harvestRes, familyRes, patientRes, invitesRes] = await Promise.all([
         fetch("/api/memories?status=pending_voice"),
         fetch("/api/memories?status=active"),
         fetch("/api/harvested"),
         fetch("/api/family-graph"),
         fetch("/api/patient"),
+        fetch("/api/invites"),
       ]);
 
       const pending = pendingRes.ok ? await pendingRes.json() : { memories: [] };
@@ -56,6 +62,7 @@ export default function StudioDashboard() {
       const harvest = harvestRes.ok ? await harvestRes.json() : { harvested: [] };
       const family = familyRes.ok ? await familyRes.json() : { members: [] };
       const patient = patientRes.ok ? await patientRes.json() : { name: "" };
+      const invitesData = invitesRes.ok ? await invitesRes.json() : { invites: [] };
 
       setPendingMemories(pending.memories || []);
       setVaultMemories(active.memories || []);
@@ -63,6 +70,7 @@ export default function StudioDashboard() {
       setFamilyMembers(family.members || []);
       setPatientName(patient.name || "");
       setSavedPatientName(patient.name || "");
+      setInvites(invitesData.invites || []);
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -256,6 +264,51 @@ export default function StudioDashboard() {
       flash("Failed to save profile", "err");
     } finally {
       setSavingPatient(false);
+    }
+  };
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newInviteEmail) return;
+    setInviting(true);
+    try {
+      const res = await fetch("/api/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newInviteEmail }),
+      });
+      if (res.ok) {
+        setNewInviteEmail("");
+        fetchAll();
+        flash("Caregiver invited successfully!");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        flash(data.error || "Failed to invite caregiver", "err");
+      }
+    } catch (err) {
+      console.error("Error inviting:", err);
+      flash("Failed to invite caregiver", "err");
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveInvite = async (email: string) => {
+    if (!confirm(`Remove access for ${email}?`)) return;
+    try {
+      const res = await fetch(`/api/invites?email=${encodeURIComponent(email)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setInvites(prev => prev.filter(i => i.email !== email));
+        flash("Access removed");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        flash(data.error || "Failed to remove access", "err");
+      }
+    } catch (err) {
+      console.error("Error removing invite:", err);
+      flash("Failed to remove access", "err");
     }
   };
 
@@ -589,6 +642,57 @@ export default function StudioDashboard() {
                 Copy Setup Link
               </button>
             </div>
+          </div>
+        </section>
+
+        {/* Caregiver Access */}
+        <section>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-4">
+            <div>
+              <h2 className="text-xl font-medium text-gray-900 mb-1 flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-600" />
+                Caregiver Access
+              </h2>
+              <p className="text-sm text-gray-500">Invite other family members or caregivers to manage this Memory Portal.</p>
+            </div>
+            
+            <form onSubmit={handleInvite} className="flex w-full sm:w-auto gap-2">
+              <input
+                type="email"
+                placeholder="caregiver@example.com"
+                className="flex-1 sm:w-64 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={newInviteEmail}
+                onChange={(e) => setNewInviteEmail(e.target.value)}
+                required
+              />
+              <button
+                type="submit"
+                disabled={inviting || !newInviteEmail}
+                className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {inviting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Invite"}
+              </button>
+            </form>
+
+            {invites.length > 0 && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Allowed Caregivers</h3>
+                <ul className="space-y-2">
+                  {invites.map((invite) => (
+                    <li key={invite.email} className="flex items-center justify-between bg-gray-50 px-4 py-2 rounded-lg">
+                      <span className="text-sm text-gray-600">{invite.email}</span>
+                      <button
+                        onClick={() => handleRemoveInvite(invite.email)}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                        title="Remove Access"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </section>
 
