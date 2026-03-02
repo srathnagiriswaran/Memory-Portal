@@ -1,0 +1,31 @@
+# The GCP project ID where the resources will be deployed
+project_id = "your-gcp-project-id"
+
+# The region to deploy the resources (e.g., us-central1)
+region = "us-central1"
+
+# ------------------------------------------------------------------------------
+# APPLICATION SECRETS
+# ------------------------------------------------------------------------------
+# These secrets will be securely uploaded to Google Secret Manager and mounted 
+# as environment variables inside the Cloud Run container.
+#
+# DO NOT COMMIT your actual terraform.tfvars file to version control.
+# Copy this file to `terraform.tfvars` and replace the values with your own.
+
+# Your Gemini API Key from Google AI Studio
+gemini_api_key = "***REDACTED_GEMINI_KEY***"
+
+# A strong random string for Magic Frame tokens (Generate using `openssl rand -base64 32`)
+frame_secret_key = "replace_with_a_long_random_string"
+
+# NextAuth Secret for signing session cookies (Generate using `openssl rand -base64 32`)
+nextauth_secret = "replace_with_another_long_random_string"
+
+# OAuth 2.0 credentials from Google Cloud Console (APIs & Services -> Credentials)
+google_client_id     = "your-google-oauth-client-id.apps.googleusercontent.com"
+google_client_secret = "your-google-oauth-client-secret"
+
+# Firebase Admin SDK Credentials (from your Firebase project settings -> Service Accounts)
+firebase_client_email = "firebase-adminsdk-xxx@your-firebase-project.iam.gserviceaccount.com"
+firebase_private_key  = "-----BEGIN PRIVATE KEY-----\nYOUR_LONG_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
