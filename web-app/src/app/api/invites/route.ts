@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       .where("primaryEmail", "==", familyId)
       .get();
 
-    const invites = snapshot.docs.map(doc => ({
+    const invites = snapshot.docs.map((doc: any) => ({
       email: doc.id,
       ...doc.data()
     }));

@@ -7,6 +7,7 @@ README.md
 .git
 .env
 .env.*
+!.env.production
 *-key.json
 terraform/
 .terraform/
