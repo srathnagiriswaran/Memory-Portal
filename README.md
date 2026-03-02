@@ -6,7 +6,7 @@
 
 ---
 
-## 🌻 The Human Touch: Why We Built This
+## 🌻 The Human Touch: Why I Built This
 
 Memory loss doesn't just steal the past; it isolates the present. For individuals experiencing cognitive decline, dementia, or Alzheimer's, looking at old photo albums can be a beautiful but lonely experience. For family members and caregivers, it's often difficult to be there 24/7 to guide those reminiscing sessions, answer repeated questions with patience, or bring those still images to life with the rich stories behind them.
 
