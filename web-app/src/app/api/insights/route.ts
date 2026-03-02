@@ -7,14 +7,16 @@ import { authOptions } from "@/lib/authOptions";
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const familyId = session.user.email;
     const { searchParams } = new URL(request.url);
     const checkOnly = searchParams.get("check") === "true";
 
     const snapshot = await adminDb.collection("harvested_memories")
+      .where("familyId", "==", familyId)
       .orderBy("createdAt", "desc")
       .limit(30) // Fetch more to allow for filtering
       .get();

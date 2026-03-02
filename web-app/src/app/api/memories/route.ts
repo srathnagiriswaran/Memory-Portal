@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { isAuthorized } from "@/lib/api-auth";
+import { getFamilyId } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -12,6 +13,7 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") || "active";
 
     const snapshot = await adminDb.collection("memories")
+      .where("familyId", "==", familyId)
       .where("status", "==", status)
       .limit(50)
       .get();
@@ -35,7 +37,8 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -46,7 +49,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Memory ID is required" }, { status: 400 });
     }
 
-    await adminDb.collection("memories").doc(id).delete();
+    // Verify ownership before deleting
+    const docRef = adminDb.collection("memories").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists || doc.data()?.familyId !== familyId) {
+       return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+    }
+
+    await docRef.delete();
     
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -60,7 +70,8 @@ export async function DELETE(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -70,7 +81,14 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Memory ID and learnedFacts array are required" }, { status: 400 });
     }
 
-    await adminDb.collection("memories").doc(id).update({
+    // Verify ownership before updating
+    const docRef = adminDb.collection("memories").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists || doc.data()?.familyId !== familyId) {
+       return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+    }
+
+    await docRef.update({
       learnedFacts
     });
     

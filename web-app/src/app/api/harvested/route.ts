@@ -6,11 +6,14 @@ import { authOptions } from "@/lib/authOptions";
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const familyId = session.user.email;
+
     const snapshot = await adminDb.collection("harvested_memories")
+      .where("familyId", "==", familyId)
       .where("status", "==", "pending_verification")
       .limit(10)
       .get();
@@ -35,14 +38,22 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const familyId = session.user.email;
 
     const { id, action, photoId, facts } = await request.json();
     
     if (!id || !action) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    }
+
+    const harvestedDocRef = adminDb.collection("harvested_memories").doc(id);
+    const harvestedDoc = await harvestedDocRef.get();
+    if (!harvestedDoc.exists || harvestedDoc.data()?.familyId !== familyId) {
+      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
     }
 
     const newStatus = action === 'verify' ? 'verified' : 'rejected';
@@ -51,7 +62,7 @@ export async function PATCH(request: Request) {
     if (action === 'verify' && photoId && photoId !== "unknown" && facts && facts.length > 0) {
       const memoryRef = adminDb.collection("memories").doc(photoId);
       const doc = await memoryRef.get();
-      if (doc.exists) {
+      if (doc.exists && doc.data()?.familyId === familyId) {
         const existingFacts = doc.data()?.learnedFacts || [];
         // Only add unique facts
         const combinedFacts = Array.from(new Set([...existingFacts, ...facts]));
@@ -61,7 +72,7 @@ export async function PATCH(request: Request) {
       }
     }
     
-    await adminDb.collection("harvested_memories").doc(id).update({
+    await harvestedDocRef.update({
       status: newStatus,
       facts: facts || [], // Update with edited facts just in case
       updatedAt: new Date().toISOString()

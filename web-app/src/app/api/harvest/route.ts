@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { adminDb } from "@/lib/firebase-admin";
-import { isAuthorized } from "@/lib/api-auth";
+import { getFamilyId } from "@/lib/api-auth";
 
 export async function POST(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
         facts: result.extractedFacts || [],
         emotionalSummary: result.emotionalSummary || "",
         status: "pending_verification",
+        familyId,
         createdAt: new Date().toISOString(),
       };
       await adminDb.collection("harvested_memories").add(harvestDoc);

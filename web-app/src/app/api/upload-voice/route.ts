@@ -17,9 +17,11 @@ export async function POST(request: Request) {
   try {
     // Authenticate the user
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    
+    const familyId = session.user.email;
 
     const formData = await request.formData();
     const memoryId = formData.get("memoryId") as string;
@@ -27,6 +29,12 @@ export async function POST(request: Request) {
 
     if (!memoryId || !audioFile) {
       return NextResponse.json({ error: "Missing required fields (memoryId, audio)" }, { status: 400 });
+    }
+
+    const docRef = adminDb.collection("memories").doc(memoryId);
+    const doc = await docRef.get();
+    if (!doc.exists || doc.data()?.familyId !== familyId) {
+      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
     }
 
     // Convert audio file to base64 for Google Cloud Speech API
@@ -63,7 +71,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Could not transcribe audio" }, { status: 400 });
     }
 
-    await adminDb.collection("memories").doc(memoryId).update({
+    await docRef.update({
       transcription,
       status: "active",
     });

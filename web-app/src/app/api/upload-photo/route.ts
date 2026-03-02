@@ -7,9 +7,11 @@ import crypto from "crypto";
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const familyId = session.user.email;
 
     const formData = await request.formData();
     const file = formData.get("photo") as File;
@@ -42,6 +44,7 @@ export async function POST(request: Request) {
       storagePath: fileName,
       caretakerEmail: session.user.email,
       caretakerName: session.user.name,
+      familyId,
       createdAt: new Date().toISOString(),
       status: "pending_voice",
     });

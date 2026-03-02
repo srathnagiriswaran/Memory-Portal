@@ -217,7 +217,8 @@ function MagicFrameContent() {
       Background context about this photo: "${currentMemory?.transcription || "It's a beautiful memory."}"${facts}
     `.trim();
     
-    await connect(context);
+    const token = deviceToken || localStorage.getItem("frame_token");
+    await connect(context, token);
   };
 
   const handleEndSession = async () => {

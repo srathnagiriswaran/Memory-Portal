@@ -41,6 +41,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
   const nextPlayTimeRef = useRef<number>(0);
   const pendingContextRef = useRef<string>("");
   const pendingEndSessionRef = useRef<boolean>(false);
+  const goodbyeTextDetectedRef = useRef<boolean>(false);
   const setupDoneRef = useRef(false);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const lastInteractionTimeRef = useRef<number>(Date.now());
@@ -188,13 +189,23 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
         if (pendingEndSessionRef.current && onEndSessionRef.current) {
           pendingEndSessionRef.current = false;
           onEndSessionRef.current();
+        } else if (goodbyeTextDetectedRef.current && onEndSessionRef.current) {
+          // Fallback: model said goodbye in text but didn't call the endSession tool.
+          // Give it 2 seconds grace (e.g. server might still send the tool call), then close.
+          console.log("[GeminiLive] Goodbye text detected — closing session via text fallback after audio end.");
+          goodbyeTextDetectedRef.current = false;
+          setTimeout(() => {
+            if (!pendingEndSessionRef.current && onEndSessionRef.current) {
+              onEndSessionRef.current();
+            }
+          }, 2000);
         }
       }
     };
   }, []);
 
   const connect = useCallback(
-    async (initialContext: string = "") => {
+    async (initialContext: string = "", authToken?: string | null) => {
       if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
       setState("connecting");
@@ -202,11 +213,18 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
       setTranscript([]);
       setupDoneRef.current = false;
       pendingContextRef.current = initialContext;
+      pendingEndSessionRef.current = false;
+      goodbyeTextDetectedRef.current = false;
 
       // Fetch the API key dynamically from our secure backend endpoint
+      // Pass the device auth token so the frame device (no NextAuth session) can authenticate
       let apiKey = "";
       try {
-        const res = await fetch("/api/gemini-key");
+        const fetchHeaders: HeadersInit = {};
+        if (authToken) {
+          fetchHeaders['Authorization'] = `Bearer ${authToken}`;
+        }
+        const res = await fetch("/api/gemini-key", { headers: fetchHeaders });
         if (!res.ok) throw new Error("Failed to fetch API key from server");
         const data = await res.json();
         apiKey = data.key;
@@ -425,6 +443,11 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                       }
                       return copy;
                     });
+                    // Detect goodbye intent as a text-based fallback for when the model
+                    // says goodbye verbally but forgets to call the endSession tool
+                    if (/\b(goodbye|bye|goodnight|good night|take care|sweet dreams|sleep well|rest well|farewell|talk soon)\b/i.test(textChunk)) {
+                      goodbyeTextDetectedRef.current = true;
+                    }
                   }
                 }
                 if (part.inlineData?.mimeType?.startsWith("audio/pcm")) {
@@ -443,6 +466,14 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                   console.log("[GeminiLive] Ending session gracefully after turn complete.");
                   pendingEndSessionRef.current = false;
                   onEndSessionRef.current();
+                } else if (goodbyeTextDetectedRef.current && onEndSessionRef.current) {
+                  console.log("[GeminiLive] Goodbye text detected — closing session via text fallback after turn complete.");
+                  goodbyeTextDetectedRef.current = false;
+                  setTimeout(() => {
+                    if (!pendingEndSessionRef.current && onEndSessionRef.current) {
+                      onEndSessionRef.current();
+                    }
+                  }, 2000);
                 }
               }
             }

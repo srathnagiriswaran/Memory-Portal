@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { isAuthorized } from "@/lib/api-auth";
+import { getFamilyId } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const doc = await adminDb.collection("settings").doc("patient_profile").get();
+    const doc = await adminDb.collection("settings").doc(`patient_profile_${familyId}`).get();
     if (doc.exists) {
       return NextResponse.json(doc.data());
     }
@@ -24,12 +25,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { name } = await request.json();
-    await adminDb.collection("settings").doc("patient_profile").set({ name }, { merge: true });
+    await adminDb.collection("settings").doc(`patient_profile_${familyId}`).set({ name, familyId }, { merge: true });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Save Patient Error:", error);

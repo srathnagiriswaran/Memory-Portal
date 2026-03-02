@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { isAuthorized } from "@/lib/api-auth";
+import { getFamilyId } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const snapshot = await adminDb.collection("family_graph").get();
+    const snapshot = await adminDb.collection("family_graph")
+      .where("familyId", "==", familyId)
+      .get();
+      
     const members = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
     return NextResponse.json({ members });
   } catch (error: any) {
@@ -23,7 +27,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -36,6 +41,7 @@ export async function POST(request: Request) {
       name,
       relationship,
       details: details || "",
+      familyId,
       createdAt: new Date().toISOString(),
     });
 
@@ -48,7 +54,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    if (!(await isAuthorized(request))) {
+    const familyId = await getFamilyId(request);
+    if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -56,7 +63,13 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
 
-    await adminDb.collection("family_graph").doc(id).delete();
+    const docRef = adminDb.collection("family_graph").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists || doc.data()?.familyId !== familyId) {
+      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+    }
+
+    await docRef.delete();
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

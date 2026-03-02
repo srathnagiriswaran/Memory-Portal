@@ -11,13 +11,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const familyId = session.user.email;
+
     const { memoryId, transcription } = await request.json();
 
     if (!memoryId || !transcription) {
       return NextResponse.json({ error: "Missing required fields (memoryId, transcription)" }, { status: 400 });
     }
 
-    await adminDb.collection("memories").doc(memoryId).update({
+    const docRef = adminDb.collection("memories").doc(memoryId);
+    const doc = await docRef.get();
+    if (!doc.exists || doc.data()?.familyId !== familyId) {
+      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+    }
+
+    await docRef.update({
       transcription,
       status: "active",
     });
