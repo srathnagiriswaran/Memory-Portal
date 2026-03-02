@@ -63,6 +63,18 @@ Navigate to the root of the project and run:
 4.  **Updates Terraform:** Automatically modifies `image_url` in your `terraform.tfvars` file to point to the exact new image digest.
 5.  **Applies Infrastructure:** Runs `terraform apply -auto-approve` to provision missing resources (like Secret Manager secrets) and roll out the new container revision to Cloud Run seamlessly.
 
+### 5. Post-Deployment: Configure Google OAuth Redirect URIs
+
+Because the application is now hosted on a live `*.run.app` domain instead of `localhost`, Google needs to know this is a trusted domain for authentication.
+
+1. Go to the [Google Cloud Console Credentials page](https://console.cloud.google.com/apis/credentials).
+2. Under **OAuth 2.0 Client IDs**, click on your client ID.
+3. Under **Authorized JavaScript origins**, click **ADD URI** and paste your Cloud Run URL:
+   `https://memory-portal-app-uqp246quja-uc.a.run.app` *(Replace with your actual URL)*
+4. Under **Authorized redirect URIs**, click **ADD URI** and paste exactly:
+   `https://memory-portal-app-uqp246quja-uc.a.run.app/api/auth/callback/google` *(Replace with your actual URL)*
+5. Click **SAVE** and wait 2-5 minutes for the changes to propagate across Google's authentication servers.
+
 ### Updating Secrets or App Code in the Future
 
 If you ever need to rotate a key, update your local `terraform.tfvars` file. 
