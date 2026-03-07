@@ -1,9 +1,15 @@
 # 🧠 Memory Portal & Magic Frame
 ### Bridging Generations with the Power of Gemini Live AI
 
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![Google Cloud](https://img.shields.io/badge/Google_Cloud-Serverless-4285F4?logo=google-cloud)](https://cloud.google.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore_%7C_Storage-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Gemini](https://img.shields.io/badge/Gemini-Live_API-8E75B2?logo=google-bard&logoColor=white)](https://aistudio.google.com/)
+
 **A submission for the Google Gemini API Developer Competition**
-**Category:** Live Agents
-**Live Application:** [https://memory-portal-app-uqp246quja-uc.a.run.app](https://memory-portal-app-uqp246quja-uc.a.run.app)
+**Category:** Live Agents  
+**Live Application:** [https://memory-portal-app-uqp246quja-uc.a.run.app](https://memory-portal-app-uqp246quja-uc.a.run.app)  
+**Demo Video:** *[Insert YouTube/Vimeo Link Here]*
 
 ---
 
@@ -48,6 +54,12 @@ Memory Portal is engineered to meet the strict demands of real-time, interruptib
 ## 🏗️ Architecture & Security
 
 Memory Portal is a monolithic Next.js application built to run 100% Serverless on Google Cloud Platform. 
+
+### 🕵️ For Judges: Where the AI Magic Happens
+If you are evaluating this project for the Gemini API competition, here are the core files where the Gemini integration lives:
+*   `web-app/src/hooks/useGeminiLive.ts`: The heart of the real-time agent. Handles the `v1beta` WebSocket connection, raw PCM audio streaming, Voice Activity Detection (VAD), and Tool Calling execution.
+*   `web-app/src/app/api/harvest/route.ts`: Uses `gemini-2.5-flash` to extract structured JSON insights (new facts and emotional tone) from the live session transcripts.
+*   `web-app/src/app/api/insights/route.ts`: Uses `gemini-2.5-flash` to analyze weeks of harvested data to generate actionable caregiving insights.
 
 ```mermaid
 flowchart TD
