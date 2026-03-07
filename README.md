@@ -87,7 +87,7 @@ flowchart TD
     %% Data & Storage
     subgraph Data ["🗄️ Firebase Ecosystem"]
         Firestore[("Firestore<br/>(NoSQL DB)")]:::firebase
-        Storage[("Firebase Storage<br/>(Photos)") ]:::firebase
+        Storage[("Firebase Storage<br/>(Photos)")]:::firebase
     end
 
     %% Security
