@@ -70,34 +70,71 @@ Memory Portal is engineered to meet the strict demands of real-time, interruptib
 ## Architecture Diagram
 
 ```mermaid
-graph TD
-    subgraph "Family / Caretaker"
-        Studio[Caretaker Web Portal] -->|NextAuth Session| API
-        Studio -->|Uploads| FBStorage[Firebase Storage]
+flowchart TD
+    %% Styling
+    classDef gcp fill:#4285F4,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef firebase fill:#FFCA28,stroke:#fff,stroke-width:2px,color:#333;
+    classDef gemini fill:#0F9D58,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef client fill:#F4B400,stroke:#fff,stroke-width:2px,color:#333;
+    classDef server fill:#DB4437,stroke:#fff,stroke-width:2px,color:#fff;
+
+    %% Actors
+    subgraph Users ["👥 End Users"]
+        Family[("Family / Caregivers")]
+        Patient[("Loved One (Patient)")]
     end
 
-    subgraph "Patient Device (Magic Frame PWA)"
-        Browser[Web Browser - Fullscreen Kiosk]
-        State[State Manager + VAD]
-        
-        State -->|Idle| Ambient[Digital Photo Frame]
-        State -->|Active| Dynamic[Interactive Memory UI]
-        
-        Browser <-->|Real-time Audio| GeminiLive[Gemini Live API]
-        Browser -->|Device Bearer Token| API
+    %% Client Apps
+    subgraph Clients ["💻 Client Interfaces (Next.js)"]
+        Studio["Caretaker Studio<br/>(Web Dashboard)"]:::client
+        Frame["Magic Frame PWA<br/>(Tablet in Kiosk Mode)"]:::client
     end
 
-    subgraph "Next.js Backend (Cloud Run)"
-        API[API Route Handlers]
-        
-        API -->|Read/Write| Firestore[(Firestore DB)]
-        API -->|STT Request| GCP_STT[Google Cloud Speech-to-Text]
-        API -->|Trigger on Session End| GeminiPro[Gemini Pro - Summarizer]
-        
-        GeminiPro -->|Extract New Facts| Firestore
-        
-        Firestore -->|Context Injection| Browser
+    %% Backend Services
+    subgraph Backend ["☁️ Google Cloud Run (Serverless)"]
+        API["Next.js API Routes<br/>(Unified Backend)"]:::server
+        Auth["Dual Authentication<br/>(NextAuth + Magic Links)"]:::server
+        API --- Auth
     end
+
+    %% AI Models
+    subgraph AI ["🧠 Google AI Ecosystem"]
+        GeminiLive["Gemini Live API<br/>(Real-time Voice)"]:::gemini
+        GeminiPro["Gemini 2.5 Flash<br/>(Insights & Harvesting)"]:::gemini
+        STT["Google Cloud<br/>Speech-to-Text"]:::gcp
+    end
+
+    %% Data & Storage
+    subgraph Data ["🗄️ Firebase Ecosystem"]
+        Firestore[("Firestore<br/>(NoSQL DB)")]:::firebase
+        Storage[("Firebase Storage<br/>(Photos)") ]:::firebase
+    end
+
+    %% Security
+    subgraph Sec ["🔐 Security & Infra"]
+        GSM["Google Secret Manager"]:::gcp
+    end
+
+    %% Relationships - Users to Clients
+    Family -->|Manages memories, views insights| Studio
+    Patient -->|Interacts via voice/touch| Frame
+
+    %% Clients to Backend & AI
+    Studio -->|Uploads context & voice notes| API
+    Studio -->|Uploads photos directly| Storage
+    
+    Frame <-->|Real-time full-duplex WebSockets| GeminiLive
+    Frame -->|Fetches photos & context| API
+
+    %% Backend to Data & Services
+    API -->|Transcribes voice notes| STT
+    API -->|Reads/Writes graphs & facts| Firestore
+    API -->|Triggers post-session summary| GeminiPro
+
+    GeminiPro -->|Extracts new facts & moods| Firestore
+    
+    %% Infra connections
+    GSM -.->|Injects keys at runtime| Backend
 ```
 
 ## Security & Privacy Enhancements
