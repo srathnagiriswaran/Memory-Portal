@@ -18,12 +18,7 @@ interface Memory {
 // Pre-loaded Family Knowledge Graph context
 const FAMILY_KNOWLEDGE_GRAPH = `
 FAMILY KNOWLEDGE GRAPH:
-- User's Name: Grandpa John
-- Primary Caregiver (Daughter): Sarah
-- Grandson: Mark (Sarah's son)
-- Late Wife: Mary
-- Pets: A golden retriever named Buster (from the 90s)
-- Hobbies: Used to love gardening and restoring old cars.
+- No family members have been added yet. Please invite family to add their details in the Caretaker Studio.
 `;
 
 function MagicFrameContent() {
@@ -36,6 +31,7 @@ function MagicFrameContent() {
   const [photoCatalogText, setPhotoCatalogText] = useState("");
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Initialize the device token on load
   useEffect(() => {
@@ -46,7 +42,14 @@ function MagicFrameContent() {
       // Clean up the URL so the token isn't visible to anyone looking over their shoulder
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
-      setDeviceToken(localStorage.getItem("frame_token"));
+      const storedToken = localStorage.getItem("frame_token");
+      if (storedToken) {
+        setDeviceToken(storedToken);
+      } else {
+        // Redirect to studio if no token found
+        setIsRedirecting(true);
+        window.location.href = "/studio?setup=true";
+      }
     }
   }, [searchParams]);
 
@@ -95,7 +98,10 @@ function MagicFrameContent() {
         
         if (memRes.status === 401) {
           console.error("Unauthorized: Invalid device token");
-          // Optionally handle unauthorized state in UI
+          // Clear token and redirect to studio for setup
+          localStorage.removeItem("frame_token");
+          setIsRedirecting(true);
+          window.location.href = "/studio?setup=true";
           return;
         }
 
@@ -125,11 +131,11 @@ function MagicFrameContent() {
           const catalog = data.memories.map((m: any) => `[ID: ${m.id}] - Added by: ${m.caretakerName}. Context: "${m.transcription}". ${m.learnedFacts && m.learnedFacts.length > 0 ? `Learned facts: ${m.learnedFacts.join(', ')}` : ''}`).join('\n');
           setPhotoCatalogText(`AVAILABLE PHOTO ALBUM CATALOG:\n${catalog}`);
         } else {
-          // Fallback ambient photos if no memories exist
-          setMemories([
-            { id: "1", photoUrl: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=2070&auto=format&fit=crop", caretakerName: "System", transcription: "A beautiful nature scene." },
-            { id: "2", photoUrl: "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?q=80&w=2076&auto=format&fit=crop", caretakerName: "System", transcription: "Another beautiful nature scene." }
-          ]);
+          // No memories exist for this token, so it's essentially an unconfigured or empty frame.
+          // Redirect to the studio so they can upload photos or log in properly.
+          setIsRedirecting(true);
+          window.location.href = "/studio?setup=true";
+          return;
         }
 
         const familyData = await familyRes.json();
@@ -231,9 +237,9 @@ function MagicFrameContent() {
       const finalTranscript = transcript.length > 0 
         ? transcript.join('\n') 
         : `AI: This looks like a fun day! (Simulated backup transcript)
-           Patient: Yes, it was my favorite.
+           Loved One: Yes, it was my favorite.
            AI: Oh, what did you like about it?
-           Patient: We had chocolate ice cream.`;
+           Loved One: We had chocolate ice cream.`;
       
       console.log("Triggering Memory Harvest with transcript length:", finalTranscript.length);
       await fetch('/api/harvest', {
@@ -257,6 +263,15 @@ function MagicFrameContent() {
   };
 
   const currentPhotoUrl = memories.length > 0 ? memories[currentPhotoIndex].photoUrl : "";
+
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <p className="text-white/60">Redirecting to Caretaker Studio for setup...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden flex flex-col items-center justify-center text-white">

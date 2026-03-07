@@ -72,7 +72,7 @@ export function PhotoCard({ memory, onUploadSuccess }: { memory: MemoryItem; onU
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+    <div className="bg-white/80 backdrop-blur-xl shadow-sm border border-white rounded-3xl overflow-hidden flex flex-col">
       <div className="h-48 bg-gray-200 relative">
         <img src={memory.photoUrl} alt="Pending memory" className="w-full h-full object-cover" />
         <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md text-white text-xs px-2 py-1 rounded">
@@ -85,7 +85,7 @@ export function PhotoCard({ memory, onUploadSuccess }: { memory: MemoryItem; onU
         {isTextMode ? (
           <div className="flex flex-col gap-2">
             <textarea
-              className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+              className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none"
               rows={3}
               placeholder="Type your memory context here..."
               value={textNote}
@@ -103,7 +103,7 @@ export function PhotoCard({ memory, onUploadSuccess }: { memory: MemoryItem; onU
               </button>
               <button
                 onClick={handleTextUpload}
-                className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                className="flex-1 bg-gray-900 text-white hover:bg-gray-800 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                 disabled={isUploading || !textNote.trim()}
               >
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -125,7 +125,7 @@ export function PhotoCard({ memory, onUploadSuccess }: { memory: MemoryItem; onU
               </button>
               <button
                 onClick={handleAudioUpload}
-                className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                className="flex-1 bg-gray-900 text-white hover:bg-gray-800 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                 disabled={isUploading}
               >
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -158,7 +158,7 @@ export function PhotoCard({ memory, onUploadSuccess }: { memory: MemoryItem; onU
             {!isRecording && (
               <button
                 onClick={() => setIsTextMode(true)}
-                className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
               >
                 <Type className="w-4 h-4" />
                 Type Instead

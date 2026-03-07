@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       2. Provide a 1-2 sentence emotional summary of the conversation. How did ${patientReference} sound? Were they happy, nostalgic, confused?
       
       CRITICAL RULES FOR EXTRACTING FACTS & SUMMARY:
-      - ALWAYS refer to the person as "${patientReference}" instead of "the senior" or "the patient".
+      - ALWAYS refer to the person as "${patientReference}" instead of "the senior", "the patient", or "the user".
       - DO NOT extract or store anything negative, distressing, or sad. We do not want to bring up negative memories in future conversations.
       - Focus ONLY on positive, neutral, or factual observations about their life, family, or the photo.
       - DO NOT include meta-commentary about the AI or the conversation itself (e.g., NEVER write "The AI companion interpreted..." or "The user repeatedly emphasized...").

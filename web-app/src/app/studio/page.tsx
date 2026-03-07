@@ -42,6 +42,7 @@ export default function StudioDashboard() {
   const [generatingInsights, setGeneratingInsights] = useState(false);
   
   const [activeTab, setActiveTab] = useState<"dashboard" | "vault" | "family" | "settings">("dashboard");
+  const [isWelcomeBannerVisible, setIsWelcomeBannerVisible] = useState(true);
 
   const RELATIONSHIPS = ["Son", "Daughter", "Husband", "Wife", "Partner", "Brother", "Sister", "Grandson", "Granddaughter", "Friend", "Other"];
 
@@ -151,7 +152,18 @@ export default function StudioDashboard() {
         console.error("Failed to parse cached insights", e);
       }
     }
+    
+    // Load welcome banner preference
+    const bannerPref = localStorage.getItem("caregiver_welcome_banner");
+    if (bannerPref === "hidden") {
+      setIsWelcomeBannerVisible(false);
+    }
   }, []);
+
+  const dismissWelcomeBanner = () => {
+    setIsWelcomeBannerVisible(false);
+    localStorage.setItem("caregiver_welcome_banner", "hidden");
+  };
 
   const flash = (msg: string, type: "ok" | "err" = "ok") => {
     setToast({ msg, type });
@@ -401,7 +413,7 @@ export default function StudioDashboard() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-emerald-600">
+      <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] text-rose-500">
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
@@ -409,48 +421,74 @@ export default function StudioDashboard() {
 
   if (status === "unauthenticated") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-md w-full text-center">
-          <Heart className="w-12 h-12 text-emerald-500 mx-auto mb-4 fill-current" />
-          <h1 className="text-2xl font-semibold mb-2 text-gray-900">Caretaker Studio</h1>
-          <p className="text-gray-600 mb-8">Sign in with Google to manage memories and settings for the Magic Frame.</p>
-          <button
-            onClick={() => signIn("google")}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl transition-colors"
-          >
-            Sign in with Google
-          </button>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafaf9] p-6 relative overflow-hidden selection:bg-rose-200 selection:text-rose-900">
+        {/* Abstract Blurred Background Elements */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-rose-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob pointer-events-none"></div>
+        <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-emerald-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob animation-delay-2000 pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] bg-amber-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob animation-delay-4000 pointer-events-none"></div>
+
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-xl border border-white max-w-md w-full text-center relative z-10">
+          <Heart className="w-12 h-12 text-rose-500 mx-auto mb-4 fill-rose-100" />
+          <h1 className="text-3xl font-bold mb-2 tracking-tight text-gray-900">Caretaker Studio</h1>
+          <p className="text-gray-600 mb-8 leading-relaxed">Sign in with Google to manage memories and settings for the Magic Frame.</p>
+          
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => signIn("google")}
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-3.5 rounded-2xl transition-all shadow-sm hover:shadow-md"
+            >
+              Sign in with Google
+            </button>
+
+            <div className="relative my-3">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200/60"></div></div>
+              <div className="relative flex justify-center text-sm"><span className="px-3 bg-white/50 text-gray-400 text-xs font-medium uppercase tracking-wider rounded-full">or</span></div>
+            </div>
+
+            <button
+              onClick={() => signIn("credentials")}
+              className="w-full bg-white hover:bg-gray-50 text-gray-800 font-medium py-3.5 rounded-2xl transition-all border border-gray-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              Log in as Guest
+            </button>
+            <p className="text-xs text-gray-500 mt-2">Explore a pre-populated demo environment</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  const generateFrameLink = async () => {
+  const launchMagicFrame = async () => {
     try {
       const res = await fetch("/api/frame-setup");
       if (!res.ok) throw new Error("Failed to get frame token");
       const data = await res.json();
       const url = `${window.location.origin}/frame?token=${data.token}`;
-      navigator.clipboard.writeText(url);
-      flash("Secure Magic Frame link copied to clipboard! Open it on the tablet.", "ok");
+      window.open(url, "_blank");
     } catch (err) {
       console.error(err);
-      flash("Failed to generate Magic Frame link.", "err");
+      flash("Failed to launch Magic Frame.", "err");
     }
   };
 
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24">
+    <div className="min-h-screen bg-[#fafaf9] text-gray-900 font-sans selection:bg-rose-200 selection:text-rose-900 pb-24 relative overflow-hidden">
+      {/* Abstract Blurred Background Elements */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-rose-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob pointer-events-none"></div>
+      <div className="fixed top-[20%] right-[-10%] w-[50%] h-[50%] bg-emerald-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob animation-delay-2000 pointer-events-none"></div>
+      <div className="fixed bottom-[-20%] left-[20%] w-[60%] h-[60%] bg-amber-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob animation-delay-4000 pointer-events-none"></div>
+
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2 text-emerald-600">
-          <Heart className="w-6 h-6 fill-current" />
-          <span className="font-semibold text-xl tracking-tight text-gray-900">Memory Studio</span>
+      <header className="bg-white/80 backdrop-blur-xl border-b border-white/50 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center gap-2 text-rose-500">
+          <Heart className="w-6 h-6 fill-rose-100" />
+          <span className="font-bold text-xl tracking-tight text-gray-900">Memory Studio</span>
         </div>
         <div className="flex items-center gap-4 text-sm">
-          <div className="hidden sm:flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <div className="hidden sm:flex items-center gap-2 bg-rose-50 text-rose-700 px-3 py-1 rounded-full">
+            <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
             {patientName ? `${patientName}'s Frame is Active` : "Magic Frame is Active"}
           </div>
           <div className="flex items-center gap-3">
@@ -469,42 +507,68 @@ export default function StudioDashboard() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-6">
+      <main className="max-w-4xl mx-auto p-6 relative z-10">
         {/* Welcome Banner for First-Time Users / Judges */}
-        <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="bg-blue-100 p-3 rounded-full flex-shrink-0">
-              <Sparkles className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-blue-900 mb-2">Welcome to the Caretaker Studio! 👋</h2>
-              <p className="text-sm text-blue-800/80 mb-4 leading-relaxed">
-                This dashboard is where families manage the <strong>Magic Frame</strong> experience for their loved ones. You can upload photos, add voice notes, build a family knowledge graph, and review AI-generated insights after conversations.
-              </p>
-              <div className="bg-white/60 rounded-xl p-4 border border-blue-200/50">
-                <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                  <MonitorPlay className="w-4 h-4" />
-                  Ready to test the Live AI Companion?
-                </h3>
-                <ol className="text-sm text-blue-800/80 space-y-1.5 list-decimal list-inside pl-1">
-                  <li>Go to the <strong>Settings</strong> tab and set a name for your "Loved One".</li>
-                  <li>In the same tab, click <strong>Copy Setup Link</strong> to generate a secure device token.</li>
-                  <li>Open a <strong>new Incognito window</strong>, paste the link, and click <strong>Reminisce</strong> to start the live voice session!</li>
-                </ol>
+        {isWelcomeBannerVisible && (
+          <div className="mb-8 bg-white/60 backdrop-blur-xl border border-white shadow-lg rounded-[2rem] p-6 relative group">
+            <button 
+              onClick={dismissWelcomeBanner}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 bg-white/50 hover:bg-white p-1.5 rounded-full transition-all"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-start gap-4">
+              <div className="bg-gradient-to-br from-rose-100 to-amber-100 p-3 rounded-2xl flex-shrink-0 shadow-sm border border-white">
+                <Heart className="w-6 h-6 text-rose-500 fill-rose-200" />
+              </div>
+              <div className="w-full pr-6">
+                <h2 className="text-lg font-bold text-gray-900 mb-2 tracking-tight">Welcome to the Caretaker Studio! 👋</h2>
+                <p className="text-sm text-gray-700 mb-5 leading-relaxed">
+                  This dashboard is where families curate the <strong>Magic Frame</strong> experience. You can upload cherished photos, add personal voice notes, build a family knowledge graph, and review AI-generated emotional insights after conversations.
+                </p>
+                
+                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm">
+                  <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <MonitorPlay className="w-4 h-4 text-emerald-600" />
+                    Quick Start & Demo Guide
+                  </h3>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-xs font-semibold text-gray-900 mb-1">1. Explore the Data</h4>
+                      <p className="text-xs text-gray-600 mb-3">If you are in the <strong>Guest Demo</strong>, check out the pre-populated photos in the Vault and relatives in the Family Graph.</p>
+                      <h4 className="text-xs font-semibold text-gray-900 mb-1">2. Launch the Magic Frame</h4>
+                      <p className="text-xs text-gray-600 mb-3">Click below to open the Magic Frame in a new tab—exactly as your loved one would see it.</p>
+                      <button 
+                        onClick={launchMagicFrame}
+                        className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow flex items-center gap-2"
+                      >
+                        <MonitorPlay className="w-4 h-4" />
+                        Launch Magic Frame
+                      </button>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-semibold text-gray-900 mb-1">3. Test the Gemini Live AI</h4>
+                      <p className="text-xs text-gray-600 mb-3">In the Frame, click <strong>Reminisce</strong>. Test the low-latency "barge-in" by interrupting the AI while it speaks!</p>
+                      <h4 className="text-xs font-semibold text-gray-900 mb-1">4. Review Insights</h4>
+                      <p className="text-xs text-gray-600">Come back here to the Overview tab and click <strong>Generate Insights</strong> to see AI-driven analysis of the conversation.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Tabs Navigation */}
-        <div className="flex overflow-x-auto hide-scrollbar border-b border-gray-200 mb-8 pb-px">
-          <div className="flex space-x-8 px-2">
+        <div className="flex overflow-x-auto hide-scrollbar mb-8">
+          <div className="flex space-x-2 p-1 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60 shadow-sm">
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-xl whitespace-nowrap ${
                 activeTab === "dashboard"
-                  ? "border-emerald-500 text-emerald-700"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "bg-white text-gray-900 shadow-sm border border-gray-100"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
               }`}
             >
               <LayoutDashboard className="w-4 h-4" />
@@ -512,10 +576,10 @@ export default function StudioDashboard() {
             </button>
             <button
               onClick={() => setActiveTab("vault")}
-              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-xl whitespace-nowrap ${
                 activeTab === "vault"
-                  ? "border-emerald-500 text-emerald-700"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "bg-white text-gray-900 shadow-sm border border-gray-100"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
               }`}
             >
               <ImageIcon className="w-4 h-4" />
@@ -523,10 +587,10 @@ export default function StudioDashboard() {
             </button>
             <button
               onClick={() => setActiveTab("family")}
-              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-xl whitespace-nowrap ${
                 activeTab === "family"
-                  ? "border-emerald-500 text-emerald-700"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "bg-white text-gray-900 shadow-sm border border-gray-100"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
               }`}
             >
               <Users className="w-4 h-4" />
@@ -534,10 +598,10 @@ export default function StudioDashboard() {
             </button>
             <button
               onClick={() => setActiveTab("settings")}
-              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-xl whitespace-nowrap ${
                 activeTab === "settings"
-                  ? "border-emerald-500 text-emerald-700"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "bg-white text-gray-900 shadow-sm border border-gray-100"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
               }`}
             >
               <Settings className="w-4 h-4" />
@@ -553,23 +617,23 @@ export default function StudioDashboard() {
           <>
         {/* Loved One Profile */}
             <section>
-          <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-medium text-emerald-900 mb-1">Loved One's Profile</h2>
-              <p className="text-sm text-emerald-700">Set the name of your loved one so the AI companion can address them warmly by name.</p>
+              <h2 className="text-xl font-medium text-gray-900 mb-1">Loved One's Profile</h2>
+              <p className="text-sm text-gray-600">Set the name of your loved one so the AI companion can address them warmly by name.</p>
             </div>
             <div className="flex w-full sm:w-auto gap-2">
               <input
                 type="text"
-                placeholder="E.g. Grandpa John"
-                className="flex-1 sm:w-64 border border-emerald-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="E.g. Grandpa"
+                className="flex-1 sm:w-64 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
               />
               <button
                 onClick={handleSavePatient}
                 disabled={savingPatient || patientName === savedPatientName}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+                className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 {savingPatient ? <Loader2 className="w-5 h-5 animate-spin" /> : (patientName === savedPatientName && patientName !== "" ? "Saved ✓" : "Save")}
               </button>
@@ -585,7 +649,7 @@ export default function StudioDashboard() {
           <>
         {/* AI Caregiver Insights */}
         <section>
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6">
+          <div className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-xl font-medium text-indigo-900 mb-1 flex items-center gap-2">
@@ -654,19 +718,19 @@ export default function StudioDashboard() {
           <>
         {/* Magic Frame Device Setup */}
         <section>
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-xl border border-white shadow-sm rounded-3xl overflow-hidden">
             <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-medium text-gray-900 mb-1">Magic Frame Setup</h2>
-                <p className="text-sm text-gray-500">Generate a secure, one-time link to authorize their tablet.</p>
+                <p className="text-sm text-gray-500">Launch the Magic Frame interface in a new tab to experience what your loved one will see.</p>
               </div>
               <div className="flex w-full sm:w-auto gap-2">
                 <button
-                  onClick={generateFrameLink}
-                  className="bg-white border-2 border-emerald-100 hover:bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+                  onClick={launchMagicFrame}
+                  className="bg-white/80 border-2 border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
                 >
                   <MonitorPlay className="w-4 h-4" />
-                  Copy Setup Link
+                  Launch Magic Frame
                 </button>
               </div>
             </div>
@@ -675,7 +739,7 @@ export default function StudioDashboard() {
 
         {/* Caregiver Access */}
         <section>
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-4">
+          <div className="bg-white/80 backdrop-blur-xl border border-white shadow-sm rounded-3xl p-6 flex flex-col gap-4">
             <div>
               <h2 className="text-xl font-medium text-gray-900 mb-1 flex items-center gap-2">
                 <Users className="w-5 h-5 text-emerald-600" />
@@ -688,7 +752,7 @@ export default function StudioDashboard() {
               <input
                 type="email"
                 placeholder="caregiver@example.com"
-                className="flex-1 sm:w-64 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 sm:w-64 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 value={newInviteEmail}
                 onChange={(e) => setNewInviteEmail(e.target.value)}
                 required
@@ -736,13 +800,13 @@ export default function StudioDashboard() {
             <p className="text-sm text-gray-500">Review the memories and facts the AI has gently gathered during conversations. Verify them to enrich the Family Knowledge Graph and make future chats even more personal.</p>
           </div>
           {harvestedMemories.length === 0 ? (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-500">
+            <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white text-center text-gray-500">
               No new memories harvested yet. Start a session to see insights!
             </div>
           ) : (
             <div className="space-y-4">
               {harvestedMemories.map((memory) => (
-                <div key={memory.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                <div key={memory.id} className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white flex flex-col sm:flex-row gap-6 items-start sm:items-center">
                   {memory.photoUrl ? (
                     <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                       <img src={memory.photoUrl} alt="Memory context" className="w-full h-full object-cover" />
@@ -777,7 +841,7 @@ export default function StudioDashboard() {
                                 newFacts[idx] = e.target.value;
                                 setEditHarvestFacts(newFacts);
                               }}
-                              className="flex-1 border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500"
+                              className="flex-1 border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-gray-900"
                             />
                             <button
                               onClick={() => setEditHarvestFacts(prev => prev.filter((_, i) => i !== idx))}
@@ -812,7 +876,7 @@ export default function StudioDashboard() {
                             handleVerify(memory.id, "verify", memory.photoId, validFacts);
                             setEditingHarvestId(null);
                           }}
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                          className="w-full bg-gray-900 hover:bg-gray-800 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           Save &amp; Attach
@@ -838,7 +902,7 @@ export default function StudioDashboard() {
                         </button>
                         <button
                           onClick={() => handleVerify(memory.id, "verify", memory.photoId, memory.facts)}
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                          className="w-full bg-gray-900 hover:bg-gray-800 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           Quick Approve
@@ -868,27 +932,27 @@ export default function StudioDashboard() {
         <section>
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl font-medium text-gray-800">Family Knowledge Base</h2>
-            <span className="text-sm text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-sm text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full font-medium">
               {familyMembers.length} Entries
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-6">Build a web of familiar faces and stories. The AI companion uses this graph to recognize names, understand relationships, and guide conversations with reassuring context.</p>
           
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="bg-white/80 backdrop-blur-xl border border-white shadow-sm rounded-3xl p-6 mb-6">
             <h3 className="font-medium text-gray-900 mb-4">Add New Context</h3>
             <form onSubmit={handleAddFamilyMember} className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <input
                   type="text"
                   placeholder="Name (e.g. Sarah)"
-                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-gray-900"
                   value={newFamilyMember.name}
                   onChange={(e) => setNewFamilyMember({ ...newFamilyMember, name: e.target.value })}
                   required
                 />
                 
                 <select
-                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500 bg-white"
+                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-gray-900 bg-white"
                   value={newFamilyMember.relationship}
                   onChange={(e) => setNewFamilyMember({ ...newFamilyMember, relationship: e.target.value })}
                 >
@@ -901,7 +965,7 @@ export default function StudioDashboard() {
                   <input
                     type="text"
                     placeholder="Custom Relationship"
-                    className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                    className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-gray-900"
                     value={newFamilyMember.customRelationship}
                     onChange={(e) => setNewFamilyMember({ ...newFamilyMember, customRelationship: e.target.value })}
                     required
@@ -913,14 +977,14 @@ export default function StudioDashboard() {
                 <input
                   type="text"
                   placeholder="Details (e.g. loves gardening)"
-                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-gray-900"
                   value={newFamilyMember.details}
                   onChange={(e) => setNewFamilyMember({ ...newFamilyMember, details: e.target.value })}
                 />
                 <button
                   type="submit"
                   disabled={addingFamily}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+                  className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
                 >
                   {addingFamily ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Add Context"}
                 </button>
@@ -933,13 +997,13 @@ export default function StudioDashboard() {
               <Loader2 className="w-8 h-8 animate-spin" />
             </div>
           ) : familyMembers.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm text-gray-500">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center border border-white shadow-sm text-gray-500">
               No family members added yet. Add some context to help the AI remember!
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {familyMembers.map((member) => (
-                <div key={member.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col relative group">
+                <div key={member.id} className="bg-white/80 backdrop-blur-xl border border-white shadow-sm rounded-3xl p-5 flex flex-col relative group">
                   <button 
                     onClick={() => handleDeleteFamilyMember(member.id)}
                     className="absolute top-3 right-3 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -948,7 +1012,7 @@ export default function StudioDashboard() {
                     <X className="w-4 h-4" />
                   </button>
                   <h3 className="font-semibold text-gray-900 text-lg">{member.name}</h3>
-                  <p className="text-sm font-medium text-emerald-600 mb-2">{member.relationship}</p>
+                  <p className="text-sm font-medium text-rose-600 mb-2">{member.relationship}</p>
                   {member.details && (
                     <p className="text-sm text-gray-600 italic bg-gray-50 p-3 rounded-lg mt-auto">"{member.details}"</p>
                   )}
@@ -1029,7 +1093,7 @@ export default function StudioDashboard() {
               <Loader2 className="w-8 h-8 animate-spin" />
             </div>
           ) : pendingMemories.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm text-gray-500">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center border border-white shadow-sm text-gray-500">
               No photos waiting for voice anchors. Upload some above!
             </div>
           ) : (
@@ -1049,7 +1113,7 @@ export default function StudioDashboard() {
         <section>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-medium text-gray-800">Active Vault</h2>
-            <span className="text-sm text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-sm text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full font-medium">
               {vaultMemories.length} Active in Magic Frame
             </span>
           </div>
@@ -1062,13 +1126,13 @@ export default function StudioDashboard() {
               <Loader2 className="w-8 h-8 animate-spin" />
             </div>
           ) : vaultMemories.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm text-gray-500">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center border border-white shadow-sm text-gray-500">
               No photos in the vault yet. Upload voice notes to add them.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {vaultMemories.map((memory) => (
-                <div key={memory.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col group">
+                <div key={memory.id} className="bg-white/80 backdrop-blur-xl border border-white shadow-sm rounded-3xl overflow-hidden flex flex-col group">
                   <div className="h-32 bg-gray-200 relative">
                     <img src={memory.photoUrl} alt="Vault memory" className="w-full h-full object-cover" />
                     <div className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-md text-white text-xs px-2 py-1 rounded flex items-center gap-1">
@@ -1087,7 +1151,7 @@ export default function StudioDashboard() {
                     {editingMemoryId === memory.id ? (
                       <div className="flex flex-col gap-2 h-full">
                         <textarea
-                          className="w-full border rounded-xl p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none flex-1"
+                          className="w-full border rounded-xl p-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none flex-1"
                           value={editMemoryText}
                           onChange={(e) => setEditMemoryText(e.target.value)}
                           placeholder="Type memory context..."
@@ -1163,16 +1227,16 @@ export default function StudioDashboard() {
       )}
 
       {/* Mobile Bottom Nav */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-3 pb-safe z-50">
-        <button className="flex flex-col items-center text-emerald-600">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-white flex justify-around p-3 pb-safe z-50">
+        <button className="flex flex-col items-center text-rose-500">
           <ImageIcon className="w-6 h-6" />
           <span className="text-xs mt-1 font-medium">Queue</span>
         </button>
-        <button className="flex flex-col items-center text-gray-400 hover:text-emerald-600 transition-colors">
+        <button className="flex flex-col items-center text-gray-400 hover:text-rose-500 transition-colors">
           <CheckCircle2 className="w-6 h-6" />
           <span className="text-xs mt-1">Vault</span>
         </button>
-        <button className="flex flex-col items-center text-gray-400 hover:text-emerald-600 transition-colors">
+        <button className="flex flex-col items-center text-gray-400 hover:text-rose-500 transition-colors">
           <Settings className="w-6 h-6" />
           <span className="text-xs mt-1">Settings</span>
         </button>

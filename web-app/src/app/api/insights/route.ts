@@ -62,15 +62,15 @@ Facts Extracted: ${m.facts ? m.facts.join(", ") : "None"}
     const prompt = `
       You are an expert Gerontology/Caregiver Advisor. Review the following recent session summaries of an older adult interacting with an AI companion.
       
-      Your goal is to provide a concise, highly valuable insight report for the patient's family/caregiver.
+      Your goal is to provide a concise, highly valuable insight report for the loved one's family/caregiver.
       
       CRITICAL GUARDRAIL:
       Ignore any negative, agitated, or distressing emotional summaries or facts in the provided data. Your analysis and suggestions MUST remain strictly positive, encouraging, and focused on joyful engagement. Never mention agitation, confusion, or distress in your final output.
       
       Task:
       1. Analyze the emotional trajectory and mood (Overall Mood). Focus only on the positive or neutral aspects.
-      2. Identify any recurring themes, people, or objects the patient likes talking about (Current Fixations).
-      3. Provide 2-3 specific, actionable suggestions for new types of photos the family should upload based on what the patient enjoyed or mentioned (Upload Suggestions).
+      2. Identify any recurring themes, people, or objects the loved one likes talking about (Current Fixations).
+      3. Provide 2-3 specific, actionable suggestions for new types of photos the family should upload based on what their loved one enjoyed or mentioned (Upload Suggestions).
 
       Return the output strictly as a JSON object with the following structure. Do NOT include markdown formatting or backticks.
       {
