@@ -31,12 +31,6 @@
     *   **Firestore Updates**: Save harvested facts as `pending_verification`.
     *   **Email Digest**: Set up a basic CRON job or SendGrid integration to email the Caretaker summary.
 
-## Phase 5: Visitor App & Signaling (The Perfect Entrance)
-*   **Goal**: Contextual Greetings.
-*   **Tasks**:
-    *   **QR Routing**: Simple mobile web view for visitors.
-    *   **Real-time triggers**: Firestore `onSnapshot` listener on the Patient App to wake up the screen and trigger a TTS greeting upon visitor check-in.
-
-## Phase 6: Demo Rehearsal & Polish
+## Phase 5: Demo Rehearsal & Polish
 *   **Action**: Test PWA in standard browser full-screen mode (F11) to simulate the Kiosk.
 *   **Action**: Validate the "Face-Saving" logic by intentionally giving incorrect answers during testing to ensure Gemini pivots correctly.

@@ -33,20 +33,6 @@ Memory Portal is a privacy-first AI companion designed for those living with Alz
 
 ---
 
-### Use Case 2: The Perfect Entrance (Immediate Social Confidence)
-**The Problem:** The anxiety of a visitor arriving and the panic of *"Who is this?"*
-**The Fix:** A seamless, zero-touch greeting that prepares the patient *before* the visitor enters.
-
-#### The Experience Deep Dive
-*   **Before:** Doorbell rings. Sarah panics. Liam enters, she looks blank. Liam feels heartbroken; Sarah feels ashamed.
-*   **With Memory Portal:**
-    1.  **Arrival:** Liam scans a small QR code at the door on his phone.
-    2.  **The Signal:** The system identifies him instantly (no facial recognition, just the token).
-    3.  **The Bridge:** Inside, Sarah's screen chimes warmly. The AI whispers: *"Sarah, your grandson Liam is here for lunch. He loves gardening."*
-    4.  **The Connection:** When Liam walks in, Sarah smiles and says, *"Liam! How is your garden?"* The gap is bridged.
-
----
-
 ## 3. The "Co-Pilot" Persona & Safety Guardrails
 To ensure emotional safety, the AI is not a generic assistant. It is a specialized **Care Companion**.
 
