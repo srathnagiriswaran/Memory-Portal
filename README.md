@@ -6,16 +6,28 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore_%7C_Storage-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Gemini](https://img.shields.io/badge/Gemini-Live_API-8E75B2?logo=google-bard&logoColor=white)](https://aistudio.google.com/)
 
-**A submission for the Google Gemini API Developer Competition**
-**Category:** Live Agents  
-**Live Application:** [https://memory-portal-app-uqp246quja-uc.a.run.app](https://memory-portal-app-uqp246quja-uc.a.run.app)  
-**Demo Video:** *[Insert YouTube/Vimeo Link Here]*
+> **A submission for the Google Gemini API Developer Competition**  
+> **Category:** Live Agents  
+> **Live Application:** [memory-portal-app.a.run.app](https://memory-portal-app-uqp246quja-uc.a.run.app)  
+> **Demo Video:** *[Insert YouTube/Vimeo Link Here]*
+
+---
+
+## 🏆 Competition Requirements Checklist
+
+This project was built specifically for the Gemini API Developer Competition and strictly adheres to the core requirements:
+
+- ✅ **Leverages a Gemini Model:** Uses **two** models. `gemini-2.5-flash-native-audio-latest` powers the real-time Live API voice companion. A background `gemini-2.5-flash` model handles post-session Memory Harvesting and generates actionable Caregiver Insights.
+- ✅ **Built using Google GenAI SDK:** The backend API routes (`/api/harvest` and `/api/insights`) are built using the official `@google/genai` SDK to interact with the Flash models.
+- ✅ **Uses Google Cloud Services:** The application is entirely cloud-native and relies heavily on GCP. It is deployed 100% serverless via **Google Cloud Run**, uses **Google Cloud Speech-to-Text API** for transcribing caregiver voice notes, and uses **Google Secret Manager** via Terraform to securely inject runtime API keys.
 
 ---
 
 ## 🌻 The Human Touch: Why I Built This
 
 Memory loss doesn't just steal the past; it isolates the present. For individuals experiencing cognitive decline, dementia, or Alzheimer's, looking at old photo albums can be a beautiful but lonely experience. For family members and caregivers, it's often difficult to be there 24/7 to guide those reminiscing sessions, answer repeated questions with patience, or bring those still images to life with the rich stories behind them.
+
+> *"We don't just want our loved ones to remember; we want them to feel heard, validated, and connected."*
 
 **Memory Portal** transforms an ordinary tablet into a **Magic Frame**. It acts as an ambient digital photo frame during the day, prioritizing the newest memories uploaded by the family. But when the user taps "Reminisce", it awakens an empathetic, patient, and warm AI companion powered by the **Gemini Live API**. 
 
