@@ -1,0 +1,68 @@
+---
+title: Memory Portal - Architecture Overview
+---
+flowchart TD
+    %% Styling
+    classDef gcp fill:#E8F0FE,stroke:#4285F4,stroke-width:2px,color:#1967D2,font-family:sans-serif,font-weight:bold;
+    classDef firebase fill:#FFF8E1,stroke:#FBBC04,stroke-width:2px,color:#E65100,font-family:sans-serif,font-weight:bold;
+    classDef gemini fill:#E6F4EA,stroke:#34A853,stroke-width:2px,color:#0D652D,font-family:sans-serif,font-weight:bold;
+    classDef client fill:#FCE8E6,stroke:#EA4335,stroke-width:2px,color:#B31412,font-family:sans-serif,font-weight:bold;
+    classDef server fill:#F3E8FD,stroke:#A142F4,stroke-width:2px,color:#681DA8,font-family:sans-serif,font-weight:bold;
+
+    %% Actors
+    subgraph Users ["👥 End Users"]
+        Family[("Family / Caregivers")]
+        Patient[("Loved One (Patient)")]
+    end
+
+    %% Client Apps
+    subgraph Clients ["💻 Client Interfaces (Next.js)"]
+        Studio["Caretaker Studio\n(Web Dashboard)"]:::client
+        Frame["Magic Frame PWA\n(Tablet in Kiosk Mode)"]:::client
+    end
+
+    %% Backend Services
+    subgraph Backend ["☁️ Google Cloud Run (Serverless)"]
+        API["Next.js API Routes\n(Unified Backend)"]:::server
+        Auth["Dual Authentication\n(NextAuth + Magic Links)"]:::server
+        API --- Auth
+    end
+
+    %% AI Models
+    subgraph AI ["🧠 Google AI Ecosystem"]
+        GeminiLive["Gemini Live API\n(Real-time Voice)"]:::gemini
+        GeminiPro["Gemini 2.5 Flash\n(Insights & Harvesting)"]:::gemini
+        STT["Google Cloud\nSpeech-to-Text"]:::gcp
+    end
+
+    %% Data & Storage
+    subgraph Data ["🗄️ Firebase Ecosystem"]
+        Firestore[("Firestore\n(NoSQL DB)")]:::firebase
+        Storage[("Firebase Storage\n(Photos)")]:::firebase
+    end
+
+    %% Security
+    subgraph Sec ["🔐 Security & Infra"]
+        GSM["Google Secret Manager"]:::gcp
+    end
+
+    %% Relationships - Users to Clients
+    Family -->|Manages memories, views insights| Studio
+    Patient -->|Interacts via voice/touch| Frame
+
+    %% Clients to Backend & AI
+    Studio -->|Uploads context & voice notes| API
+    Studio -->|Uploads photos directly| Storage
+    
+    Frame <-->|Real-time full-duplex WebSockets| GeminiLive
+    Frame -->|Fetches photos & context| API
+
+    %% Backend to Data & Services
+    API -->|Transcribes voice notes| STT
+    API -->|Reads/Writes graphs & facts| Firestore
+    API -->|Triggers post-session summary| GeminiPro
+
+    GeminiPro -->|Extracts new facts & moods| Firestore
+    
+    %% Infra connections
+    GSM -.->|Injects keys at runtime| Backend

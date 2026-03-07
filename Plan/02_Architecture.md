@@ -70,13 +70,16 @@ Memory Portal is engineered to meet the strict demands of real-time, interruptib
 ## Architecture Diagram
 
 ```mermaid
+---
+title: Memory Portal - Architecture Overview
+---
 flowchart TD
     %% Styling
-    classDef gcp fill:#4285F4,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef firebase fill:#FFCA28,stroke:#fff,stroke-width:2px,color:#333;
-    classDef gemini fill:#0F9D58,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef client fill:#F4B400,stroke:#fff,stroke-width:2px,color:#333;
-    classDef server fill:#DB4437,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef gcp fill:#E8F0FE,stroke:#4285F4,stroke-width:2px,color:#1967D2,font-family:sans-serif,font-weight:bold;
+    classDef firebase fill:#FFF8E1,stroke:#FBBC04,stroke-width:2px,color:#E65100,font-family:sans-serif,font-weight:bold;
+    classDef gemini fill:#E6F4EA,stroke:#34A853,stroke-width:2px,color:#0D652D,font-family:sans-serif,font-weight:bold;
+    classDef client fill:#FCE8E6,stroke:#EA4335,stroke-width:2px,color:#B31412,font-family:sans-serif,font-weight:bold;
+    classDef server fill:#F3E8FD,stroke:#A142F4,stroke-width:2px,color:#681DA8,font-family:sans-serif,font-weight:bold;
 
     %% Actors
     subgraph Users ["👥 End Users"]
