@@ -470,6 +470,32 @@ export default function StudioDashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto p-6">
+        {/* Welcome Banner for First-Time Users / Judges */}
+        <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="bg-blue-100 p-3 rounded-full flex-shrink-0">
+              <Sparkles className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-blue-900 mb-2">Welcome to the Caretaker Studio! 👋</h2>
+              <p className="text-sm text-blue-800/80 mb-4 leading-relaxed">
+                This dashboard is where families manage the <strong>Magic Frame</strong> experience for their loved ones. You can upload photos, add voice notes, build a family knowledge graph, and review AI-generated insights after conversations.
+              </p>
+              <div className="bg-white/60 rounded-xl p-4 border border-blue-200/50">
+                <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <MonitorPlay className="w-4 h-4" />
+                  Ready to test the Live AI Companion?
+                </h3>
+                <ol className="text-sm text-blue-800/80 space-y-1.5 list-decimal list-inside pl-1">
+                  <li>Go to the <strong>Settings</strong> tab and set a name for your "Loved One".</li>
+                  <li>In the same tab, click <strong>Copy Setup Link</strong> to generate a secure device token.</li>
+                  <li>Open a <strong>new Incognito window</strong>, paste the link, and click <strong>Reminisce</strong> to start the live voice session!</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Tabs Navigation */}
         <div className="flex overflow-x-auto hide-scrollbar border-b border-gray-200 mb-8 pb-px">
           <div className="flex space-x-8 px-2">
@@ -530,7 +556,7 @@ export default function StudioDashboard() {
           <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-medium text-emerald-900 mb-1">Loved One's Profile</h2>
-              <p className="text-sm text-emerald-700">Set the name of your loved one using the Magic Frame so the AI knows who it&apos;s talking to.</p>
+              <p className="text-sm text-emerald-700">Set the name of your loved one so the AI companion can address them warmly by name.</p>
             </div>
             <div className="flex w-full sm:w-auto gap-2">
               <input
@@ -566,7 +592,7 @@ export default function StudioDashboard() {
                   <Sparkles className="w-5 h-5 text-indigo-500" />
                   AI Caregiver Insights
                 </h2>
-                <p className="text-sm text-indigo-700">Analyze recent Magic Frame sessions to understand their mood and get personalized photo upload suggestions.</p>
+                <p className="text-sm text-indigo-700">Analyze recent conversations from the Magic Frame to understand your loved one's emotional state and get AI-driven suggestions on what photos to upload next.</p>
               </div>
               <button
                 onClick={() => handleGenerateInsights(false)}
@@ -628,19 +654,21 @@ export default function StudioDashboard() {
           <>
         {/* Magic Frame Device Setup */}
         <section>
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-medium text-gray-900 mb-1">Magic Frame Setup</h2>
-              <p className="text-sm text-gray-500">Generate a secure, one-time link to authorize their tablet.</p>
-            </div>
-            <div className="flex w-full sm:w-auto gap-2">
-              <button
-                onClick={generateFrameLink}
-                className="bg-white border-2 border-emerald-100 hover:bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
-              >
-                <MonitorPlay className="w-4 h-4" />
-                Copy Setup Link
-              </button>
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-medium text-gray-900 mb-1">Magic Frame Setup</h2>
+                <p className="text-sm text-gray-500">Generate a secure, one-time link to authorize their tablet.</p>
+              </div>
+              <div className="flex w-full sm:w-auto gap-2">
+                <button
+                  onClick={generateFrameLink}
+                  className="bg-white border-2 border-emerald-100 hover:bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+                >
+                  <MonitorPlay className="w-4 h-4" />
+                  Copy Setup Link
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -653,7 +681,7 @@ export default function StudioDashboard() {
                 <Users className="w-5 h-5 text-emerald-600" />
                 Caregiver Access
               </h2>
-              <p className="text-sm text-gray-500">Invite other family members or caregivers to manage this Memory Portal.</p>
+              <p className="text-sm text-gray-500">Invite other family members or caregivers to contribute photos, voice notes, and review AI insights together.</p>
             </div>
             
             <form onSubmit={handleInvite} className="flex w-full sm:w-auto gap-2">
@@ -703,7 +731,10 @@ export default function StudioDashboard() {
           <>
         {/* Memory Harvest */}
         <section>
-          <h2 className="text-xl font-medium mb-4 text-gray-800">Latest Memory Harvest</h2>
+          <div className="mb-6">
+            <h2 className="text-xl font-medium mb-1 text-gray-800">Latest Memory Harvest</h2>
+            <p className="text-sm text-gray-500">Review the memories and facts the AI has gently gathered during conversations. Verify them to enrich the Family Knowledge Graph and make future chats even more personal.</p>
+          </div>
           {harvestedMemories.length === 0 ? (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-500">
               No new memories harvested yet. Start a session to see insights!
@@ -835,12 +866,13 @@ export default function StudioDashboard() {
           <>
         {/* Family Knowledge Graph */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl font-medium text-gray-800">Family Knowledge Base</h2>
             <span className="text-sm text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">
               {familyMembers.length} Entries
             </span>
           </div>
+          <p className="text-sm text-gray-500 mb-6">Build a web of familiar faces and stories. The AI companion uses this graph to recognize names, understand relationships, and guide conversations with reassuring context.</p>
           
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
             <h3 className="font-medium text-gray-900 mb-4">Add New Context</h3>
@@ -934,7 +966,7 @@ export default function StudioDashboard() {
           <>
         {/* Upload Zone */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl font-medium text-gray-800">Upload Photos</h2>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -945,6 +977,7 @@ export default function StudioDashboard() {
               Browse Files
             </button>
           </div>
+          <p className="text-sm text-gray-500 mb-4">Add new moments to the Magic Frame. The AI will analyze the images and ask you for context so it can talk about them naturally.</p>
 
           <input
             ref={fileInputRef}
@@ -983,12 +1016,13 @@ export default function StudioDashboard() {
 
         {/* Curation Queue */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl font-medium text-gray-800">Curation Queue</h2>
             <span className="text-sm text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
               {pendingMemories.length} Pending
             </span>
           </div>
+          <p className="text-sm text-gray-500 mb-4">Photos waiting for your voice notes. Speak a memory about the photo to give the AI context before it appears on the Magic Frame.</p>
 
           {loading ? (
             <div className="py-12 flex justify-center items-center text-gray-400">
@@ -1020,7 +1054,7 @@ export default function StudioDashboard() {
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            These photos are currently in the Magic Frame rotation. <b>Captured Memories</b> attached to these photos are used by the AI as context to personalize future conversations. You can delete any fact that you don't want the AI to mention again.
+            These photos are currently displayed on the Magic Frame. The <b>Captured Memories</b> attached to these photos give the AI companion rich context to personalize its conversations. You can easily edit or remove any facts you don't want the AI to mention.
           </p>
 
           {loading ? (
