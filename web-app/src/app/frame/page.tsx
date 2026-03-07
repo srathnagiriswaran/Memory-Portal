@@ -15,7 +15,7 @@ interface Memory {
   learnedFacts?: string[];
 }
 
-// Mock Family Knowledge Graph for the hackathon WOW factor
+// Pre-loaded Family Knowledge Graph context
 const FAMILY_KNOWLEDGE_GRAPH = `
 FAMILY KNOWLEDGE GRAPH:
 - User's Name: Grandpa John

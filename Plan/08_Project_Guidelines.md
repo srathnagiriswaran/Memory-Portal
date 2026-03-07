@@ -59,8 +59,8 @@ To win, the final submission must adhere to the following checklist. **(Reminder
     *   "Live" factor (real software working).
 
 ### Optional Developer Contributions (Bonus Points)
-To maximize our score, we MUST complete these before the final submission deadline:
-- [ ] **Automated Cloud Deployment (IaC)**: Use scripts or Terraform/Pulumi to automate deployment and include it in the repo (+0.2 points). *(Note: We will build the app first, then write the IaC scripts before submission).*
+To maximize the score, these MUST be completed before the final submission deadline:
+- [ ] **Automated Cloud Deployment (IaC)**: Use scripts or Terraform/Pulumi to automate deployment and include it in the repo (+0.2 points). *(Note: The app will be built first, then the IaC scripts before submission).*
 - [ ] **Content Creation**: Publish a blog, podcast, or video about building the project using Google AI and GCP (Medium, Dev.to, YouTube). Must include specific disclaimer language and hashtag `#GeminiLiveAgentChallenge` (+0.6 points).
 - [ ] **GDG Membership**: Provide a public Google Developer Group profile link (+0.2 points).
 

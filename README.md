@@ -13,17 +13,28 @@
 
 ---
 
-## 🏆 Competition Requirements Checklist
+## 🏆 How Memory Portal Meets Judging Criteria
 
-This project was built specifically for the Gemini API Developer Competition and strictly adheres to the core requirements:
+This project was built specifically for the **Live Agents** category of the Gemini API Developer Competition.
 
-- ✅ **Leverages a Gemini Model:** Uses **two** models. `gemini-2.5-flash-native-audio-latest` powers the real-time Live API voice companion. A background `gemini-2.5-flash` model handles post-session Memory Harvesting and generates actionable Caregiver Insights.
-- ✅ **Built using Google GenAI SDK:** The backend API routes (`/api/harvest` and `/api/insights`) are built using the official `@google/genai` SDK to interact with the Flash models.
-- ✅ **Uses Google Cloud Services:** The application is entirely cloud-native and relies heavily on GCP. It is deployed 100% serverless via **Google Cloud Run**, uses **Google Cloud Speech-to-Text API** for transcribing caregiver voice notes, and uses **Google Secret Manager** via Terraform to securely inject runtime API keys.
+**1. Innovation & Multimodal UX (40%)**
+- ✅ **Breaks the Text-Box Paradigm:** The Magic Frame has zero text inputs. It relies entirely on full-duplex voice and touch.
+- ✅ **True "Live" Interruptibility:** Powered directly by the Gemini Live API (`gemini-2.5-flash-native-audio-latest`) via WebSockets, allowing the user to naturally "barge-in", change topics, or interrupt the AI with low-latency.
+- ✅ **Tool Calling in Real-Time:** The AI listens to the context and autonomously triggers UI changes (e.g., pulling up a specific family photo when mentioned).
+
+**2. Technical Implementation & Architecture (30%)**
+- ✅ **Google GenAI SDK:** Uses the official `@google/genai` SDK for backend Memory Harvesting and Insights generation via `gemini-2.5-flash`.
+- ✅ **Google Cloud Native:** 100% serverless on **Google Cloud Run**, using **Firestore**, **Cloud Storage**, **Google Cloud Speech-to-Text**, and **Secret Manager** (provisioned via included **Terraform**).
+- ✅ **Strict Guardrails:** Employs "Errorless Learning" system instructions to prevent hallucinations and keep interactions positive and safe for vulnerable users.
+
+**3. Core Competition Mandates**
+- ✅ **Leverages a Gemini Model:** Yes (Live API + Flash).
+- ✅ **Open Source Repository:** Publicly available with full deployment scripts.
+- ✅ **Live Demo Video:** Includes real-time footage of the barge-in capabilities and multimodal interaction.
 
 ---
 
-## 🌻 The Human Touch: Why I Built This
+## 🌻 The Human Touch: The Motivation Behind the Project
 
 *The most painful part of memory loss isn't just forgetting the past. It's the quiet isolation it creates in the present.*
 
@@ -31,11 +42,11 @@ When a loved one experiences cognitive decline, looking at old photo albums can 
 
 **Memory Portal is that bridge.**
 
-> *"Memory is a muscle, and human connection is its fuel. I designed Memory Portal as a gentle 'gym for the mind', using AI not to replace human interaction, but to sustain it, helping our loved ones hold onto their family, their stories, and their sense of self for as long as possible."*
+> *"Memory is a muscle, and human connection is its fuel. Memory Portal was designed as a gentle 'gym for the mind', using AI not to replace human interaction, but to sustain it, helping our loved ones hold onto their family, their stories, and their sense of self for as long as possible."*
 
 ### How Gemini Brings It to Life
 
-I transformed an ordinary tablet into a **Magic Frame**. By day, it's an ambient digital photo frame prioritizing the newest memories uploaded by the family. 
+The system transforms an ordinary tablet into a **Magic Frame**. By day, it's an ambient digital photo frame prioritizing the newest memories uploaded by the family. 
 
 But when the user taps "Reminisce", the magic happens. It awakens an empathetic, patient, and warm AI companion powered by the **Gemini Live API**. 
 
@@ -52,7 +63,7 @@ It acts as an infinitely patient co-pilot, ensuring the user is always exercisin
 
 Memory Portal goes beyond technical achievement; it is designed to create magical, emotional moments that bridge generations. 
 
-**🖼️ The Interactive "Magic" Frame:** I moved past the idea of a passive digital photo album. With a single tap of "Reminisce," the ambient display transforms into a deeply engaging, low-latency voice companion that *knows* the stories behind the pictures. I built a zero-friction interface with no typing and no logins, just natural conversation.
+**🖼️ The Interactive "Magic" Frame:** The project moves past the idea of a passive digital photo album. With a single tap of "Reminisce," the ambient display transforms into a deeply engaging, low-latency voice companion that *knows* the stories behind the pictures. It features a zero-friction interface with no typing and no logins, just natural conversation.
 
 **🧠 Semantic Photo Surfacing (Tool Calling):** The AI actively listens to the flow of conversation. If a loved one mentions "fishing with John," the Gemini AI autonomously triggers a `changePhoto` tool. It instantly brings up the fishing trip photo on the screen, creating a serendipitous and fluid reminiscing experience.
 
@@ -64,7 +75,7 @@ Memory Portal goes beyond technical achievement; it is designed to create magica
 
 **🎙️ Multi-Modal Family Vault:** Caregivers shouldn't have to type long paragraphs. They can simply speak into their phones to drop voice notes on photos, powered by GCP Speech-to-Text. This instantly anchors the image with deep, personal context like names, relationships, and inside jokes, for the AI to weave into conversation.
 
-**🤝 Barge-In Ready & Empathetic:** The AI can be interrupted naturally. It stops, listens, and responds just like a human. I implemented strict anti-hallucination and positivity guardrails to guarantee every interaction is safe, grounded, and uplifting.
+**🤝 Barge-In Ready & Empathetic:** The AI can be interrupted naturally. It stops, listens, and responds just like a human. Strict anti-hallucination and positivity guardrails guarantee every interaction is safe, grounded, and uplifting.
 
 **👋 Graceful Session Management:** The AI is trained to recognize conversational closing cues, like "I'm tired" or "goodbye." It will autonomously invoke an `endSession` tool to naturally say farewell and transition the frame back to its quiet, ambient state.
 
@@ -74,15 +85,15 @@ Memory Portal goes beyond technical achievement; it is designed to create magica
 
 Memory Portal is engineered to meet the strict demands of real-time, interruptible AI while maintaining robust security.
 
-**⚡ True Live Agent via WebSockets:** I power the experience directly through the Gemini Live WebSocket API (`gemini-2.5-flash-native-audio-latest`), ensuring the low-latency, full-duplex communication required for natural interruptions. 
+**⚡ True Live Agent via WebSockets:** The experience is powered directly through the Gemini Live WebSocket API (`gemini-2.5-flash-native-audio-latest`), ensuring the low-latency, full-duplex communication required for natural interruptions. 
 
 **☁️ 100% Serverless Cloud-Native:** The entire infrastructure, including the Next.js frontend and API, Firestore database, and Firebase Storage, is designed to run natively and auto-scale on Google Cloud Platform, with a target deployment on Cloud Run.
 
-**🔐 Dual-Authentication Architecture:** I implemented a strict security boundary using NextAuth.js and Google OAuth for the Caretaker Studio, combined with secure, zero-trust, rotating Device Tokens for the patient-facing Magic Frame.
+**🔐 Dual-Authentication Architecture:** A strict security boundary is implemented using NextAuth.js and Google OAuth for the Caretaker Studio, combined with secure, zero-trust, rotating Device Tokens for the patient-facing Magic Frame.
 
-**🤖 Chained AI Pipeline:** I use a dual-model approach. The Gemini Live API handles the real-time, low-latency conversation, while a secondary Gemini 2.5 Flash model runs asynchronously post-session to extract structured JSON data for Memory Harvesting and Insights.
+**🤖 Chained AI Pipeline:** The system uses a dual-model approach. The Gemini Live API handles the real-time, low-latency conversation, while a secondary Gemini 2.5 Flash model runs asynchronously post-session to extract structured JSON data for Memory Harvesting and Insights.
 
-**🎤 Seamless Transcriptions:** I integrated Google Cloud Speech-to-Text to accurately transcribe caregiver voice notes into semantic context for the database.
+**🎤 Seamless Transcriptions:** Google Cloud Speech-to-Text is integrated to accurately transcribe caregiver voice notes into semantic context for the database.
 
 **🛡️ Zero-Surveillance Design:** The patient interface utilizes client-side Voice Activity Detection. Audio is only streamed to the API when sustained human speech is detected, and the camera is never accessed, ensuring absolute privacy.
 
@@ -175,7 +186,7 @@ flowchart TD
 **Hosting:** Google Cloud Run (Target Deployment)
 
 **Security First:**
-Because I am dealing with sensitive family data and vulnerable users, security is not an afterthought. I use a **Dual-Authentication Strategy**:
+Because the application deals with sensitive family data and vulnerable users, security is not an afterthought. It uses a **Dual-Authentication Strategy**:
 1.  **Caregivers** authenticate via NextAuth.js (Google OAuth).
 2.  **Magic Frames** use a secure, one-time device token generated from the Caretaker Studio.
 3.  **Zero-Surveillance:** Audio is processed using client-side Voice Activity Detection (VAD). The microphone only sends data when human speech is occurring. Cameras are *never* accessed.
@@ -188,7 +199,7 @@ Because I am dealing with sensitive family data and vulnerable users, security i
 
 ## ☁️ Google Cloud Deployment
 
-This application is designed to be fully containerized and deployed to **Google Cloud Run** using Terraform. I use **Google Secret Manager (GSM)** to manage all sensitive keys, ensuring they are never exposed in plaintext or committed to the repository.
+This application is designed to be fully containerized and deployed to **Google Cloud Run** using Terraform. It uses **Google Secret Manager (GSM)** to manage all sensitive keys, ensuring they are never exposed in plaintext or committed to the repository.
 
 ### Quick Deploy (One-Click Update)
 

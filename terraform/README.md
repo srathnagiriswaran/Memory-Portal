@@ -48,7 +48,7 @@ terraform init
 
 ### 4. Deploying the Application (One-Click)
 
-Instead of manually running Terraform apply and Docker commands every time, I use a unified deployment script that handles the entire build, push, and deploy lifecycle.
+Instead of manually running Terraform apply and Docker commands every time, the project uses a unified deployment script that handles the entire build, push, and deploy lifecycle.
 
 Navigate to the root of the project and run:
 

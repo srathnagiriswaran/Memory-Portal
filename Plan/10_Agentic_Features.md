@@ -27,7 +27,7 @@ To make conversations deeply personal and natural, the AI needs context beyond j
 ## 3. Emotional Tone Detection & Adaptation
 
 **Concept:**
-The `native-audio` model processes raw audio, meaning it can detect *how* something is said (prosody, tone, emotion), not just the words. We leverage this to make the AI an empathetic caregiver.
+The `native-audio` model processes raw audio, meaning it can detect *how* something is said (prosody, tone, emotion), not just the words. This is leveraged to make the AI an empathetic caregiver.
 
 **Architecture:**
 - **Prompt Engineering:** The `SYSTEM_INSTRUCTION` explicitly instructs the AI to monitor the user's emotional tone.
@@ -36,7 +36,7 @@ The `native-audio` model processes raw audio, meaning it can detect *how* someth
 ## 4. The "Harvesting" Feedback Loop
 
 **Concept:**
-As the patient reminisces, they often reveal new facts, correct historical inaccuracies, or share deeply personal stories that the family didn't know or didn't include in the original metadata. We want to capture this and enrich the album.
+As the patient reminisces, they often reveal new facts, correct historical inaccuracies, or share deeply personal stories that the family didn't know or didn't include in the original metadata. The system captures this to enrich the album.
 
 **Architecture:**
 - **End of Session:** When the session ends, the full conversation transcript is sent to the `/api/harvest` endpoint.
