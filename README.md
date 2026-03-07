@@ -13,25 +13,6 @@
 
 ---
 
-## 🏆 How Memory Portal Meets Judging Criteria
-
-This project was built specifically for the **Live Agents** category of the Gemini API Developer Competition.
-
-**1. Innovation & Multimodal UX (40%)**
-- ✅ **Breaks the Text-Box Paradigm:** The Magic Frame has zero text inputs. It relies entirely on full-duplex voice and touch.
-- ✅ **True "Live" Interruptibility:** Powered directly by the Gemini Live API (`gemini-2.5-flash-native-audio-latest`) via WebSockets, allowing the user to naturally "barge-in", change topics, or interrupt the AI with low-latency.
-- ✅ **Tool Calling in Real-Time:** The AI listens to the context and autonomously triggers UI changes (e.g., pulling up a specific family photo when mentioned).
-
-**2. Technical Implementation & Architecture (30%)**
-- ✅ **Google GenAI SDK:** Uses the official `@google/genai` SDK for backend Memory Harvesting and Insights generation via `gemini-2.5-flash`.
-- ✅ **Google Cloud Native:** 100% serverless on **Google Cloud Run**, using **Firestore**, **Cloud Storage**, **Google Cloud Speech-to-Text**, and **Secret Manager** (provisioned via included **Terraform**).
-- ✅ **Strict Guardrails:** Employs "Errorless Learning" system instructions to prevent hallucinations and keep interactions positive and safe for vulnerable users.
-
-**3. Core Competition Mandates**
-- ✅ **Leverages a Gemini Model:** Yes (Live API + Flash).
-- ✅ **Open Source Repository:** Publicly available with full deployment scripts.
-- ✅ **Live Demo Video:** Includes real-time footage of the barge-in capabilities and multimodal interaction.
-
 ---
 
 ## 🌻 The Human Touch: The Motivation Behind the Project
@@ -257,6 +238,27 @@ All Google Cloud resources are provisioned via Terraform in the `terraform/` dir
 🔗 **[Read the Full Deployment & Terraform Guide Here](./terraform/README.md)**
 
 *Note on State Files:* Terraform state files (`*.tfstate`) are explicitly ignored in `.gitignore` to prevent leaking sensitive information if you are running Terraform locally. For a multi-developer team, consider configuring a GCS backend for remote state storage.
+
+---
+
+## 🏆 How Memory Portal Meets Judging Criteria
+
+This project was built specifically for the **Live Agents** category of the Gemini API Developer Competition.
+
+**1. Innovation & Multimodal UX (40%)**
+- ✅ **Breaks the Text-Box Paradigm:** The Magic Frame has zero text inputs. It relies entirely on full-duplex voice and touch.
+- ✅ **True "Live" Interruptibility:** Powered directly by the Gemini Live API (`gemini-2.5-flash-native-audio-latest`) via WebSockets, allowing the user to naturally "barge-in", change topics, or interrupt the AI with low-latency.
+- ✅ **Tool Calling in Real-Time:** The AI listens to the context and autonomously triggers UI changes (e.g., pulling up a specific family photo when mentioned).
+
+**2. Technical Implementation & Architecture (30%)**
+- ✅ **Google GenAI SDK:** Uses the official `@google/genai` SDK for backend Memory Harvesting and Insights generation via `gemini-2.5-flash`.
+- ✅ **Google Cloud Native:** 100% serverless on **Google Cloud Run**, using **Firestore**, **Cloud Storage**, **Google Cloud Speech-to-Text**, and **Secret Manager** (provisioned via included **Terraform**).
+- ✅ **Strict Guardrails:** Employs "Errorless Learning" system instructions to prevent hallucinations and keep interactions positive and safe for vulnerable users.
+
+**3. Core Competition Mandates**
+- ✅ **Leverages a Gemini Model:** Yes (Live API + Flash).
+- ✅ **Open Source Repository:** Publicly available with full deployment scripts.
+- ✅ **Live Demo Video:** Includes real-time footage of the barge-in capabilities and multimodal interaction.
 
 ---
 
