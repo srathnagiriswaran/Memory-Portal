@@ -25,13 +25,15 @@ This project was built specifically for the Gemini API Developer Competition and
 
 ## 🌻 The Human Touch: Why I Built This
 
-Memory loss doesn't just steal the past; it isolates the present. For individuals experiencing cognitive decline, dementia, or Alzheimer's, looking at old photo albums can be a beautiful but lonely experience. For family members and caregivers, it's often difficult to be there 24/7 to guide those reminiscing sessions, answer repeated questions with patience, or bring those still images to life with the rich stories behind them.
+Memory loss doesn't just steal the past; it isolates the present. For individuals experiencing cognitive decline, dementia, or Alzheimer's, fading memories mean fading connections with the people who love them most. 
 
-> *"We don't just want our loved ones to remember; we want them to feel heard, validated, and connected."*
+> *"Memory is like a muscle, and connection is its fuel. This project is designed as a gentle 'gym for the mind'—helping our loved ones hold onto their family, their stories, and their sense of self for as long as possible."*
 
-**Memory Portal** transforms an ordinary tablet into a **Magic Frame**. It acts as an ambient digital photo frame during the day, prioritizing the newest memories uploaded by the family. But when the user taps "Reminisce", it awakens an empathetic, patient, and warm AI companion powered by the **Gemini Live API**. 
+For family members and caregivers, it's often difficult to be there 24/7 to guide reminiscing sessions or answer repeated questions with patience. **Memory Portal** transforms an ordinary tablet into a **Magic Frame**. It acts as an ambient digital photo frame during the day, prioritizing the newest memories uploaded by the family. 
 
-This companion doesn't just "describe an image." It uses a deep **Family Knowledge Graph** and the personal stories recorded by the caregiver to engage in a fluid, real-time, voice-to-voice conversation. If the patient gets confused, it gently pivots. If they mention their grandson Mark, the AI uses its tool-calling capabilities to instantly bring up a photo of Mark on the screen. It is an infinitely patient friend, designed with *Errorless Learning* principles, ensuring the user always feels safe, heard, and loved.
+But when the user taps "Reminisce", it awakens an empathetic, patient, and warm AI companion powered by the **Gemini Live API**. 
+
+This companion doesn't just "describe an image." It uses a deep **Family Knowledge Graph** and the personal stories recorded by the caregiver to engage in a fluid, real-time, voice-to-voice conversation. It exercises those neural pathways by gently encouraging recall. If the patient gets confused, it never corrects or shames them; it gently pivots. If they mention their grandson Mark, the AI uses its tool-calling capabilities to instantly bring up a photo of Mark on the screen. It is an infinitely patient friend, designed with *Errorless Learning* principles, ensuring the user is always exercising their memory in a safe, loving environment.
 
 ---
 
