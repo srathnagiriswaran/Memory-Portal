@@ -197,6 +197,37 @@ Because the application deals with sensitive family data and vulnerable users, s
 
 ---
 
+## 🧪 Reproducible Testing Instructions
+
+To help judges experience the Magic Frame and the Caretaker Studio exactly as intended, follow these steps to test the live application.
+
+### 1. Accessing the Caretaker Studio
+1. Navigate to the live URL: [memory-portal-app-uqp246quja-uc.a.run.app](https://memory-portal-app-uqp246quja-uc.a.run.app)
+2. Click **"Caretaker Login"**.
+3. Authenticate using any Google Account. (The application uses NextAuth.js for secure OAuth).
+4. Once logged in, you will see the Caretaker Dashboard. 
+5. *Test the Flow:* Try uploading a new photo and typing a short context note (e.g., "This is me and my dog Buster").
+
+### 2. Generating the Magic Frame Link
+1. From the Caretaker Dashboard, locate the **"Generate Frame Link"** button.
+2. Click it to generate a secure, one-time device token.
+3. A unique URL will be generated. Copy this URL.
+
+### 3. Experiencing the Magic Frame (Live Agent)
+1. Open a **new Incognito/Private browsing window** (this simulates the separate physical tablet device the patient would use).
+2. Paste the generated Frame Link into the URL bar.
+3. The application will consume the token, authenticate the device, and strip the token from the URL.
+4. You will see the ambient photo frame UI displaying the photos uploaded in Step 1.
+
+### 4. Testing the Gemini Live Barge-In
+1. Ensure your microphone is enabled and your speakers are on.
+2. Click the **"Reminisce"** (or microphone) button on the screen.
+3. **Wait for the AI to speak first.** It will greet you and describe the photo currently on screen using the context provided in Step 1.
+4. **Test the Barge-In:** While the AI is speaking, interrupt it loudly. Say something completely off-topic, like *"Wait, I'm tired, I want to stop."*
+5. Observe how the Gemini Live API immediately halts its audio output, processes your interruption, and gracefully handles the end-of-session intent using Tool Calling.
+
+---
+
 ## ☁️ Google Cloud Deployment
 
 This application is designed to be fully containerized and deployed to **Google Cloud Run** using Terraform. It uses **Google Secret Manager (GSM)** to manage all sensitive keys, ensuring they are never exposed in plaintext or committed to the repository.
