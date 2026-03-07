@@ -17,28 +17,28 @@ flowchart TD
 
     %% Client Apps
     subgraph Clients ["💻 Client Interfaces (Next.js)"]
-        Studio["Caretaker Studio\n(Web Dashboard)"]:::client
-        Frame["Magic Frame PWA\n(Tablet in Kiosk Mode)"]:::client
+        Studio["Caretaker Studio<br/>(Web Dashboard)"]:::client
+        Frame["Magic Frame PWA<br/>(Tablet in Kiosk Mode)"]:::client
     end
 
     %% Backend Services
     subgraph Backend ["☁️ Google Cloud Run (Serverless)"]
-        API["Next.js API Routes\n(Unified Backend)"]:::server
-        Auth["Dual Authentication\n(NextAuth + Magic Links)"]:::server
+        API["Next.js API Routes<br/>(Unified Backend)"]:::server
+        Auth["Dual Authentication<br/>(NextAuth + Magic Links)"]:::server
         API --- Auth
     end
 
     %% AI Models
     subgraph AI ["🧠 Google AI Ecosystem"]
-        GeminiLive["Gemini Live API\n(Real-time Voice)"]:::gemini
-        GeminiPro["Gemini 2.5 Flash\n(Insights & Harvesting)"]:::gemini
-        STT["Google Cloud\nSpeech-to-Text"]:::gcp
+        GeminiLive["Gemini Live API<br/>(Real-time Voice)"]:::gemini
+        GeminiPro["Gemini 2.5 Flash<br/>(Insights & Harvesting)"]:::gemini
+        STT["Google Cloud<br/>Speech-to-Text"]:::gcp
     end
 
     %% Data & Storage
     subgraph Data ["🗄️ Firebase Ecosystem"]
-        Firestore[("Firestore\n(NoSQL DB)")]:::firebase
-        Storage[("Firebase Storage\n(Photos)")]:::firebase
+        Firestore[("Firestore<br/>(NoSQL DB)")]:::firebase
+        Storage[("Firebase Storage<br/>(Photos)")]:::firebase
     end
 
     %% Security
