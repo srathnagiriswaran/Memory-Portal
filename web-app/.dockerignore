@@ -11,3 +11,6 @@ README.md
 *-key.json
 terraform/
 .terraform/
+inspect_demo_data*.ts
+check_demo_data.ts
+seed_miller_family.ts

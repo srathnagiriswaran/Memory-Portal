@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "inspect_demo_data*.ts", "check_demo_data.ts", "seed_miller_family.ts"]
 }
