@@ -99,7 +99,7 @@ export default function Home() {
           {/* 1. Product Name — the anchor */}
           <div className="flex items-center justify-center gap-2.5 mb-4">
             <Heart className="w-7 h-7 text-rose-500 fill-rose-100" />
-            <span className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">Memory Portal</span>
+            <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">Memory Portal</span>
           </div>
 
           {/* 2. Credential badge */}
@@ -113,14 +113,14 @@ export default function Home() {
             Where stories come back to life
           </p>
 
-          {/* 4. Emotional hook — two lines, each fits on one line */}
-          <h1 className="font-bold tracking-tight leading-snug mb-6 whitespace-nowrap text-[clamp(1.1rem,3vw,2rem)]">
+          {/* 4. Emotional hook */}
+          <h1 className="font-bold tracking-tight leading-snug mb-6 text-2xl sm:text-3xl md:whitespace-nowrap md:text-[clamp(1.4rem,2.8vw,2rem)]">
             <span className="text-gray-900 block">They don't need someone to remember <em className="not-italic">for</em> them.</span>
             <span className="bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent block">
               They need someone to remember <em className="not-italic">with</em> them.
             </span>
           </h1>
-          <div className="text-lg text-gray-500 leading-relaxed mb-10 space-y-1">
+          <div className="text-base sm:text-lg text-gray-500 leading-relaxed mb-10 space-y-1 px-2 sm:px-0">
             <p>An AI companion that knows every photo, every name, and every story.</p>
             <p className="text-gray-500">So your loved one never has to reminisce alone.</p>
           </div>
