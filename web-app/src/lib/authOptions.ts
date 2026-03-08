@@ -14,7 +14,7 @@ export const authOptions: NextAuthOptions = {
       async authorize() {
         // Instantly log in as the pre-configured judge account
         // We use the same email as the primary account so the demo data shows up
-        const demoEmail = process.env.DEMO_ACCOUNT_EMAIL || "srathnagiriswaran@gmail.com";
+        const demoEmail = process.env.DEMO_ACCOUNT_EMAIL || "demo@memoryportal.com";
         return {
           id: "demo-judge-id",
           name: "Guest",

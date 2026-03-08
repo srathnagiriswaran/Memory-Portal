@@ -105,30 +105,71 @@ function MagicFrameContent() {
           return;
         }
 
+        const demoNamesBase64 = searchParams.get("demo_names");
+        let overrides: Record<string, string> | null = null;
+        if (demoNamesBase64) {
+          try {
+            overrides = JSON.parse(decodeURIComponent(atob(demoNamesBase64)));
+          } catch (e) {
+            console.error("Failed to parse demo overrides", e);
+          }
+        }
+
+        const BASE_NAMES = {
+          patient: "Thomas",
+          spouse: "Martha",
+          caregiver: "David",
+          daughter: "Sarah",
+          grandson: "Jake",
+          granddaughter: "Emily",
+          dog: "Buster"
+        };
+
+        const personalize = (text: string) => {
+          if (!overrides || !text) return text;
+          let result = text;
+          // Order matters: swap full names before partial ones to avoid partial collisions
+          if (overrides.granddaughter) result = result.replaceAll(BASE_NAMES.granddaughter, overrides.granddaughter);
+          if (overrides.grandson) result = result.replaceAll(BASE_NAMES.grandson, overrides.grandson);
+          if (overrides.daughter) result = result.replaceAll(BASE_NAMES.daughter, overrides.daughter);
+          if (overrides.caregiver) result = result.replaceAll(BASE_NAMES.caregiver, overrides.caregiver);
+          if (overrides.spouse) result = result.replaceAll(BASE_NAMES.spouse, overrides.spouse);
+          if (overrides.patient) result = result.replaceAll(BASE_NAMES.patient, overrides.patient);
+          if (overrides.dog) result = result.replaceAll(BASE_NAMES.dog, overrides.dog);
+          return result;
+        };
+
         const data = await memRes.json();
         if (data.memories && data.memories.length > 0) {
-          setMemories(data.memories);
+          const personalizedMemories = data.memories.map((m: any) => ({
+            ...m,
+            caretakerName: personalize(m.caretakerName),
+            transcription: personalize(m.transcription),
+            learnedFacts: m.learnedFacts ? m.learnedFacts.map(personalize) : []
+          }));
+
+          setMemories(personalizedMemories);
 
           // Find the newest unshown photo
           const viewedIds = JSON.parse(localStorage.getItem("viewed_memories") || "[]");
-          const unshownIndex = data.memories.findIndex((m: any) => !viewedIds.includes(m.id));
+          const unshownIndex = personalizedMemories.findIndex((m: any) => !viewedIds.includes(m.id));
           
           let initialIndex = 0;
           if (unshownIndex !== -1) {
             initialIndex = unshownIndex;
           } else {
             // Fallback to random if all have been seen
-            initialIndex = Math.floor(Math.random() * data.memories.length);
+            initialIndex = Math.floor(Math.random() * personalizedMemories.length);
           }
           
           setCurrentPhotoIndex(initialIndex);
           
           // Mark this initial photo as viewed
-          if (!viewedIds.includes(data.memories[initialIndex].id)) {
-            localStorage.setItem("viewed_memories", JSON.stringify([...viewedIds, data.memories[initialIndex].id]));
+          if (!viewedIds.includes(personalizedMemories[initialIndex].id)) {
+            localStorage.setItem("viewed_memories", JSON.stringify([...viewedIds, personalizedMemories[initialIndex].id]));
           }
           
-          const catalog = data.memories.map((m: any) => `[ID: ${m.id}] - Added by: ${m.caretakerName}. Context: "${m.transcription}". ${m.learnedFacts && m.learnedFacts.length > 0 ? `Learned facts: ${m.learnedFacts.join(', ')}` : ''}`).join('\n');
+          const catalog = personalizedMemories.map((m: any) => `[ID: ${m.id}] - Added by: ${m.caretakerName}. Context: "${m.transcription}". ${m.learnedFacts && m.learnedFacts.length > 0 ? `Learned facts: ${m.learnedFacts.join(', ')}` : ''}`).join('\n');
           setPhotoCatalogText(`AVAILABLE PHOTO ALBUM CATALOG:\n${catalog}`);
         } else {
           // No memories exist for this token, so it's essentially an unconfigured or empty frame.
@@ -140,14 +181,14 @@ function MagicFrameContent() {
 
         const familyData = await familyRes.json();
         if (familyData.members && familyData.members.length > 0) {
-          const graphText = familyData.members.map((m: any) => `- ${m.name} (${m.relationship}): ${m.details || 'No additional details'}`).join('\n');
+          const graphText = familyData.members.map((m: any) => `- ${personalize(m.name)} (${m.relationship}): ${personalize(m.details || 'No additional details')}`).join('\n');
           setFamilyGraphText(`FAMILY KNOWLEDGE GRAPH:\n${graphText}`);
         } else {
           setFamilyGraphText(FAMILY_KNOWLEDGE_GRAPH); // Fallback to mock
         }
         
         const patientData = await patientRes.json();
-        setPatientName(patientData.name || "");
+        setPatientName(personalize(patientData.name || ""));
       } catch (err) {
         console.error("Failed to fetch data:", err);
       }

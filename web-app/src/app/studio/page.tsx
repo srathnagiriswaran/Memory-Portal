@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Mic, CheckCircle2, Image as ImageIcon, Settings, Heart, LogOut,
-  Loader2, Upload, Plus, X, MonitorPlay, Trash2, Edit2, Sparkles, Camera, LayoutDashboard, Users
+  Loader2, Upload, Plus, X, MonitorPlay, Trash2, Edit2, Sparkles, Camera, LayoutDashboard, Users,
+  ArrowRight, Play, ChevronDown, MessageCircleHeart
 } from "lucide-react";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { PhotoCard, MemoryItem } from "@/components/PhotoCard";
 
-export default function StudioDashboard() {
+function StudioDashboardInner() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
   const [pendingMemories, setPendingMemories] = useState<MemoryItem[]>([]);
   const [vaultMemories, setVaultMemories] = useState<any[]>([]);
   const [harvestedMemories, setHarvestedMemories] = useState<any[]>([]);
@@ -43,6 +46,18 @@ export default function StudioDashboard() {
   
   const [activeTab, setActiveTab] = useState<"dashboard" | "vault" | "family" | "settings">("dashboard");
   const [isWelcomeBannerVisible, setIsWelcomeBannerVisible] = useState(true);
+
+  const [showPersonalizeModal, setShowPersonalizeModal] = useState(false);
+  const [demoLaunching, setDemoLaunching] = useState(false);
+  const [demoOverrides, setDemoOverrides] = useState({
+    patient: "",
+    spouse: "",
+    caregiver: "",
+    daughter: "",
+    grandson: "",
+    granddaughter: "",
+    dog: ""
+  });
 
   const RELATIONSHIPS = ["Son", "Daughter", "Husband", "Wife", "Partner", "Brother", "Sister", "Grandson", "Granddaughter", "Friend", "Other"];
 
@@ -105,6 +120,26 @@ export default function StudioDashboard() {
   useEffect(() => {
     if (status === "authenticated") {
       fetchAll();
+
+      // Auto-launch Magic Frame if redirected from the pre-login personalize flow
+      const shouldLaunch = searchParams.get("launch_frame") === "1";
+      if (shouldLaunch) {
+        const demoNames = searchParams.get("demo_names");
+        (async () => {
+          try {
+            const res = await fetch("/api/frame-setup");
+            if (!res.ok) return;
+            const data = await res.json();
+            let url = `${window.location.origin}/frame?token=${data.token}`;
+            if (demoNames) url += `&demo_names=${demoNames}`;
+            window.open(url, "_blank");
+            // Clean up URL so it doesn't re-launch on refresh
+            window.history.replaceState({}, document.title, "/studio");
+          } catch (err) {
+            console.error("Auto-launch failed:", err);
+          }
+        })();
+      }
 
       // Check if we should auto-generate new insights
       const checkInsightsAutoUpdate = async () => {
@@ -420,52 +455,39 @@ export default function StudioDashboard() {
   }
 
   if (status === "unauthenticated") {
+    // All demo & landing content lives at /  — redirect there
+    if (typeof window !== "undefined") {
+      window.location.replace("/");
+    }
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafaf9] p-6 relative overflow-hidden selection:bg-rose-200 selection:text-rose-900">
-        {/* Abstract Blurred Background Elements */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-rose-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob pointer-events-none"></div>
-        <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-emerald-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob animation-delay-2000 pointer-events-none"></div>
-        <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] bg-amber-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob animation-delay-4000 pointer-events-none"></div>
-
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-xl border border-white max-w-md w-full text-center relative z-10">
-          <Heart className="w-12 h-12 text-rose-500 mx-auto mb-4 fill-rose-100" />
-          <h1 className="text-3xl font-bold mb-2 tracking-tight text-gray-900">Caretaker Studio</h1>
-          <p className="text-gray-600 mb-8 leading-relaxed">Sign in with Google to manage memories and settings for the Magic Frame.</p>
-          
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={() => signIn("google")}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-3.5 rounded-2xl transition-all shadow-sm hover:shadow-md"
-            >
-              Sign in with Google
-            </button>
-
-            <div className="relative my-3">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200/60"></div></div>
-              <div className="relative flex justify-center text-sm"><span className="px-3 bg-white/50 text-gray-400 text-xs font-medium uppercase tracking-wider rounded-full">or</span></div>
-            </div>
-
-            <button
-              onClick={() => signIn("credentials")}
-              className="w-full bg-white hover:bg-gray-50 text-gray-800 font-medium py-3.5 rounded-2xl transition-all border border-gray-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Log in as Guest
-            </button>
-            <p className="text-xs text-gray-500 mt-2">Explore a pre-populated demo environment</p>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#fafaf9]">
+        <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
       </div>
     );
   }
 
-  const launchMagicFrame = async () => {
+
+  const launchMagicFrame = async (personalized = false) => {
     try {
       const res = await fetch("/api/frame-setup");
       if (!res.ok) throw new Error("Failed to get frame token");
       const data = await res.json();
-      const url = `${window.location.origin}/frame?token=${data.token}`;
+      let url = `${window.location.origin}/frame?token=${data.token}`;
+      
+      if (personalized) {
+        // Only include fields that the user actually typed in
+        const activeOverrides = Object.fromEntries(
+          Object.entries(demoOverrides).filter(([_, v]) => v.trim() !== "")
+        );
+        if (Object.keys(activeOverrides).length > 0) {
+          // Use btoa safely with UTF-8
+          const encoded = btoa(encodeURIComponent(JSON.stringify(activeOverrides)));
+          url += `&demo_names=${encoded}`;
+        }
+      }
+      
       window.open(url, "_blank");
+      setShowPersonalizeModal(false);
     } catch (err) {
       console.error(err);
       flash("Failed to launch Magic Frame.", "err");
@@ -539,13 +561,22 @@ export default function StudioDashboard() {
                       <p className="text-xs text-gray-600 mb-3">If you are in the <strong>Guest Demo</strong>, check out the pre-populated photos in the Vault and relatives in the Family Graph.</p>
                       <h4 className="text-xs font-semibold text-gray-900 mb-1">2. Launch the Magic Frame</h4>
                       <p className="text-xs text-gray-600 mb-3">Click below to open the Magic Frame in a new tab—exactly as your loved one would see it.</p>
-                      <button 
-                        onClick={launchMagicFrame}
-                        className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow flex items-center gap-2"
-                      >
-                        <MonitorPlay className="w-4 h-4" />
-                        Launch Magic Frame
-                      </button>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => launchMagicFrame(false)}
+                          className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow flex items-center gap-2"
+                        >
+                          <MonitorPlay className="w-4 h-4" />
+                          Launch Magic Frame
+                        </button>
+                        <button 
+                          onClick={() => setShowPersonalizeModal(true)}
+                          className="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow flex items-center gap-2"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          Personalize Demo
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <h4 className="text-xs font-semibold text-gray-900 mb-1">3. Test the Gemini Live AI</h4>
@@ -726,11 +757,18 @@ export default function StudioDashboard() {
               </div>
               <div className="flex w-full sm:w-auto gap-2">
                 <button
-                  onClick={launchMagicFrame}
+                  onClick={() => launchMagicFrame(false)}
                   className="bg-white/80 border-2 border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
                 >
                   <MonitorPlay className="w-4 h-4" />
                   Launch Magic Frame
+                </button>
+                <button
+                  onClick={() => setShowPersonalizeModal(true)}
+                  className="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Personalize Demo
                 </button>
               </div>
             </div>
@@ -1217,6 +1255,110 @@ export default function StudioDashboard() {
         </div>
       </main>
 
+      {/* Personalize Demo Modal */}
+      {showPersonalizeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-md w-full relative">
+            <button 
+              onClick={() => setShowPersonalizeModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" /> Make It Personal
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Let's map this story to your family for the demo. We won't save this data permanently.
+            </p>
+            
+            <div className="space-y-3 mb-6">
+              <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Leave blank to keep the default name</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">👴 The Loved One</label>
+                  <input 
+                    type="text" 
+                    placeholder="Default: Thomas"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    value={demoOverrides.patient}
+                    onChange={(e) => setDemoOverrides(prev => ({ ...prev, patient: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">💑 The Spouse</label>
+                  <input 
+                    type="text" 
+                    placeholder="Default: Martha"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    value={demoOverrides.spouse}
+                    onChange={(e) => setDemoOverrides(prev => ({ ...prev, spouse: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">👨 The Son (Caregiver)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Default: David"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    value={demoOverrides.caregiver}
+                    onChange={(e) => setDemoOverrides(prev => ({ ...prev, caregiver: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">👩 The Daughter (Baker)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Default: Sarah"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    value={demoOverrides.daughter}
+                    onChange={(e) => setDemoOverrides(prev => ({ ...prev, daughter: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">🔧 The Grandson (Mechanic)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Default: Jake"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    value={demoOverrides.grandson}
+                    onChange={(e) => setDemoOverrides(prev => ({ ...prev, grandson: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">⚾ The Granddaughter (Pitcher)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Default: Emily"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    value={demoOverrides.granddaughter}
+                    onChange={(e) => setDemoOverrides(prev => ({ ...prev, granddaughter: e.target.value }))}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">🐶 The Family Dog</label>
+                  <input 
+                    type="text" 
+                    placeholder="Default: Buster"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    value={demoOverrides.dog}
+                    onChange={(e) => setDemoOverrides(prev => ({ ...prev, dog: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => launchMagicFrame(true)}
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+            >
+              <MonitorPlay className="w-5 h-5" />
+              Launch Personalized Frame
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Toast */}
       {toast && (
         <div className={`fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all ${
@@ -1242,5 +1384,17 @@ export default function StudioDashboard() {
         </button>
       </nav>
     </div>
+  );
+}
+
+export default function StudioDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#fafaf9]">
+        <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
+      </div>
+    }>
+      <StudioDashboardInner />
+    </Suspense>
   );
 }
