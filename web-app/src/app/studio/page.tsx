@@ -94,6 +94,11 @@ function StudioDashboardInner() {
     }
   }, []);
 
+  // Scope localStorage keys to the logged-in user's email so insights never
+  // bleed between the personal Google account and the demo guest account.
+  const insightsCacheKey = `caregiver_insights_${session?.user?.email ?? "anon"}`;
+  const insightsMetaCacheKey = `caregiver_insights_meta_${session?.user?.email ?? "anon"}`;
+
   const handleGenerateInsights = useCallback(async (isAuto = false) => {
     setGeneratingInsights(true);
     try {
@@ -101,9 +106,9 @@ function StudioDashboardInner() {
       const data = await res.json();
       if (res.ok && data.insights) {
         setInsights(data.insights);
-        localStorage.setItem("caregiver_insights", JSON.stringify(data.insights));
+        localStorage.setItem(insightsCacheKey, JSON.stringify(data.insights));
         if (data.metadata) {
-          localStorage.setItem("caregiver_insights_meta", JSON.stringify(data.metadata));
+          localStorage.setItem(insightsMetaCacheKey, JSON.stringify(data.metadata));
         }
         if (!isAuto) flash("Insights generated successfully!", "ok");
       } else {
@@ -115,7 +120,7 @@ function StudioDashboardInner() {
     } finally {
       setGeneratingInsights(false);
     }
-  }, []);
+  }, [insightsCacheKey, insightsMetaCacheKey]);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -144,8 +149,8 @@ function StudioDashboardInner() {
       // Check if we should auto-generate new insights
       const checkInsightsAutoUpdate = async () => {
         try {
-          const cached = localStorage.getItem("caregiver_insights");
-          const cachedMetaStr = localStorage.getItem("caregiver_insights_meta");
+          const cached = localStorage.getItem(insightsCacheKey);
+          const cachedMetaStr = localStorage.getItem(insightsMetaCacheKey);
           
           const res = await fetch("/api/insights?check=true");
           const data = await res.json();
@@ -178,14 +183,17 @@ function StudioDashboardInner() {
   }, [status, fetchAll, handleGenerateInsights]);
 
   useEffect(() => {
-    // Load cached insights on initial mount
-    const cached = localStorage.getItem("caregiver_insights");
+    // Load cached insights for THIS user only
+    const cached = localStorage.getItem(insightsCacheKey);
     if (cached) {
       try {
         setInsights(JSON.parse(cached));
       } catch (e) {
         console.error("Failed to parse cached insights", e);
       }
+    } else {
+      // Clear any stale insights that may have loaded from another account
+      setInsights(null);
     }
     
     // Load welcome banner preference
@@ -193,7 +201,7 @@ function StudioDashboardInner() {
     if (bannerPref === "hidden") {
       setIsWelcomeBannerVisible(false);
     }
-  }, []);
+  }, [insightsCacheKey]);
 
   const dismissWelcomeBanner = () => {
     setIsWelcomeBannerVisible(false);
