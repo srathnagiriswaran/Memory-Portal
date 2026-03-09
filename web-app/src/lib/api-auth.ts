@@ -3,6 +3,16 @@ import { authOptions } from "@/lib/authOptions";
 import crypto from "crypto";
 import { adminDb } from "@/lib/firebase-admin";
 
+const DEMO_EMAIL = (process.env.DEMO_ACCOUNT_EMAIL || "demo@memoryportal.com").toLowerCase();
+
+/**
+ * Returns true if the resolved familyId belongs to the read-only demo account.
+ * Call this in any write route to block mutations on demo data.
+ */
+export function isDemoAccount(familyId: string): boolean {
+  return familyId.toLowerCase() === DEMO_EMAIL;
+}
+
 /**
  * Generates a signed token for the Magic Frame device, encoding the familyId (email).
  */

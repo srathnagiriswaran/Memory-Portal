@@ -216,30 +216,13 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
       pendingEndSessionRef.current = false;
       goodbyeTextDetectedRef.current = false;
 
-      // Fetch the API key dynamically from our secure backend endpoint
-      // Pass the device auth token so the frame device (no NextAuth session) can authenticate
-      let apiKey = "";
-      try {
-        const fetchHeaders: HeadersInit = {};
-        if (authToken) {
-          fetchHeaders['Authorization'] = `Bearer ${authToken}`;
-        }
-        const res = await fetch("/api/gemini-key", { headers: fetchHeaders });
-        if (!res.ok) throw new Error("Failed to fetch API key from server");
-        const data = await res.json();
-        apiKey = data.key;
-      } catch (err: any) {
-        console.error("[GeminiLive] Failed to get API key:", err);
-        setState("error");
-        setError("Failed to retrieve Gemini API key from server");
-        return;
-      }
-
-      if (!apiKey) {
-        setState("error");
-        setError("Gemini API Key is missing on the server");
-        return;
-      }
+      // To avoid P0 API Key Exfiltration without using short-lived tokens,
+      // we securely proxy the WebSocket through Next.js Edge Middleware.
+      // This hides the GEMINI_API_KEY on the server but maintains the exact same
+      // bidirectional WebSockets pipeline (no custom chunking logic that could break).
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/api/gemini-live-proxy?token=${encodeURIComponent(authToken || "")}`;
 
       try {
         const mic = await navigator.mediaDevices.getUserMedia({ 
@@ -253,7 +236,6 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
         captureCtxRef.current = new AudioContext({ sampleRate: 16000 });
         playbackCtxRef.current = new AudioContext();
 
-        const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 

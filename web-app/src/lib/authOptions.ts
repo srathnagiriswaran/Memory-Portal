@@ -2,6 +2,8 @@ import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 
+const DEMO_EMAIL = (process.env.DEMO_ACCOUNT_EMAIL || "demo@memoryportal.com").toLowerCase();
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -12,13 +14,10 @@ export const authOptions: NextAuthOptions = {
       name: "Guest",
       credentials: {},
       async authorize() {
-        // Instantly log in as the pre-configured judge account
-        // We use the same email as the primary account so the demo data shows up
-        const demoEmail = process.env.DEMO_ACCOUNT_EMAIL || "demo@memoryportal.com";
         return {
           id: "demo-judge-id",
           name: "Guest",
-          email: demoEmail,
+          email: DEMO_EMAIL,
           image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest&backgroundColor=e0f2fe"
         };
       }
@@ -27,5 +26,19 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
+  },
+  callbacks: {
+    async jwt({ token, account }) {
+      // Mark the token as demo on initial sign-in via CredentialsProvider
+      if (account?.provider === "credentials") {
+        token.isDemo = true;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // Expose the isDemo flag to the client session
+      (session as any).isDemo = token.isDemo === true;
+      return session;
+    },
   },
 };

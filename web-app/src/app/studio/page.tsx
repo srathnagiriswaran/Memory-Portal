@@ -13,6 +13,7 @@ import { PhotoCard, MemoryItem } from "@/components/PhotoCard";
 
 function StudioDashboardInner() {
   const { data: session, status } = useSession();
+  const isDemo = (session as any)?.isDemo === true;
   const searchParams = useSearchParams();
   const [pendingMemories, setPendingMemories] = useState<MemoryItem[]>([]);
   const [vaultMemories, setVaultMemories] = useState<any[]>([]);
@@ -210,10 +211,19 @@ function StudioDashboardInner() {
 
   const flash = (msg: string, type: "ok" | "err" = "ok") => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const DEMO_MSG = "This is a read-only demo. Sign in with your Google account to make changes.";
+
+  const handleApiError = async (res: Response): Promise<string> => {
+    if (res.status === 403) return DEMO_MSG;
+    const body = await res.json().catch(() => ({}));
+    return body.error || `Request failed (${res.status})`;
   };
 
   const uploadFiles = async (files: FileList | File[]) => {
+    if (isDemo) { flash(DEMO_MSG, "err"); return; }
     const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
     if (images.length === 0) { flash("No valid images selected", "err"); return; }
 
@@ -229,9 +239,8 @@ function StudioDashboardInner() {
           setPendingMemories((prev) => [{ id: data.id, photoUrl: data.photoUrl, status: "pending_voice" }, ...prev]);
           ok++;
         } else {
-          const err = await res.json().catch(() => ({}));
-          console.error("Upload failed:", err);
-          flash(err.error || `Upload failed (${res.status})`, "err");
+          flash(await handleApiError(res), "err");
+          break;
         }
       }
       if (ok > 0) flash(`${ok} photo${ok > 1 ? "s" : ""} uploaded — record a voice anchor next!`);
@@ -269,6 +278,7 @@ function StudioDashboardInner() {
 
   const handleAddFamilyMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemo) { flash(DEMO_MSG, "err"); return; }
     setAddingFamily(true);
     
     const finalRelationship = newFamilyMember.relationship === 'Other' 
@@ -287,10 +297,10 @@ function StudioDashboardInner() {
       });
       if (res.ok) {
         setNewFamilyMember({ name: '', relationship: 'Daughter', customRelationship: '', details: '' });
-        fetchAll(); // Refresh the list
+        fetchAll();
         flash("Family member added successfully");
       } else {
-        flash("Failed to add family member", "err");
+        flash(await handleApiError(res), "err");
       }
     } catch (err) {
       console.error("Error adding family member:", err);
@@ -301,6 +311,7 @@ function StudioDashboardInner() {
   };
 
   const handleSavePatient = async () => {
+    if (isDemo) { flash(DEMO_MSG, "err"); return; }
     setSavingPatient(true);
     try {
       const res = await fetch("/api/patient", {
@@ -312,7 +323,7 @@ function StudioDashboardInner() {
         setSavedPatientName(patientName);
         flash("Loved one's profile updated!");
       } else {
-        flash("Failed to save profile", "err");
+        flash(await handleApiError(res), "err");
       }
     } catch (err) {
       console.error("Error saving patient:", err);
@@ -324,6 +335,7 @@ function StudioDashboardInner() {
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemo) { flash(DEMO_MSG, "err"); return; }
     if (!newInviteEmail) return;
     setInviting(true);
     try {
@@ -337,8 +349,7 @@ function StudioDashboardInner() {
         fetchAll();
         flash("Caregiver invited successfully!");
       } else {
-        const data = await res.json().catch(() => ({}));
-        flash(data.error || "Failed to invite caregiver", "err");
+        flash(await handleApiError(res), "err");
       }
     } catch (err) {
       console.error("Error inviting:", err);
@@ -349,6 +360,7 @@ function StudioDashboardInner() {
   };
 
   const handleRemoveInvite = async (email: string) => {
+    if (isDemo) { flash(DEMO_MSG, "err"); return; }
     if (!confirm(`Remove access for ${email}?`)) return;
     try {
       const res = await fetch(`/api/invites?email=${encodeURIComponent(email)}`, {
@@ -358,8 +370,7 @@ function StudioDashboardInner() {
         setInvites(prev => prev.filter(i => i.email !== email));
         flash("Access removed");
       } else {
-        const data = await res.json().catch(() => ({}));
-        flash(data.error || "Failed to remove access", "err");
+        flash(await handleApiError(res), "err");
       }
     } catch (err) {
       console.error("Error removing invite:", err);
@@ -368,6 +379,7 @@ function StudioDashboardInner() {
   };
 
   const handleDeleteFamilyMember = async (id: string) => {
+    if (isDemo) { flash(DEMO_MSG, "err"); return; }
     try {
       await fetch(`/api/family-graph?id=${id}`, { method: "DELETE" });
       setFamilyMembers(prev => prev.filter(m => m.id !== id));
@@ -433,6 +445,7 @@ function StudioDashboardInner() {
   };
 
   const handleSaveMemoryEdit = async (id: string) => {
+    if (isDemo) { flash(DEMO_MSG, "err"); return; }
     if (!editMemoryText.trim()) return;
     try {
       const res = await fetch("/api/upload-text", {
@@ -446,7 +459,7 @@ function StudioDashboardInner() {
         setEditingMemoryId(null);
         flash("Memory context updated");
       } else {
-        flash("Failed to update context", "err");
+        flash(await handleApiError(res), "err");
       }
     } catch (err) {
       console.error(err);
@@ -538,6 +551,14 @@ function StudioDashboardInner() {
       </header>
 
       <main className="max-w-4xl mx-auto p-6 relative z-10">
+        {/* Read-only demo banner */}
+        {isDemo && (
+          <div className="mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-5 py-3 text-sm font-medium">
+            <span className="text-lg">👁️</span>
+            <span>You are viewing a <strong>read-only demo</strong>. Uploads, edits, and invites are disabled. <button onClick={() => signOut()} className="underline ml-1 hover:text-amber-900">Sign in with your own Google account</button> to create your family's portal.</span>
+          </div>
+        )}
+
         {/* Welcome Banner for First-Time Users / Judges */}
         {isWelcomeBannerVisible && (
           <div className="mb-8 bg-white/60 backdrop-blur-xl border border-white shadow-lg rounded-[2rem] p-6 relative group">
@@ -671,8 +692,9 @@ function StudioDashboardInner() {
               />
               <button
                 onClick={handleSavePatient}
-                disabled={savingPatient || patientName === savedPatientName}
+                disabled={isDemo || savingPatient || patientName === savedPatientName}
                 className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+                title={isDemo ? "Read-only in demo mode" : undefined}
               >
                 {savingPatient ? <Loader2 className="w-5 h-5 animate-spin" /> : (patientName === savedPatientName && patientName !== "" ? "Saved ✓" : "Save")}
               </button>
@@ -798,15 +820,17 @@ function StudioDashboardInner() {
               <input
                 type="email"
                 placeholder="caregiver@example.com"
-                className="flex-1 sm:w-64 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                className="flex-1 sm:w-64 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                 value={newInviteEmail}
                 onChange={(e) => setNewInviteEmail(e.target.value)}
+                disabled={isDemo}
                 required
               />
               <button
                 type="submit"
-                disabled={inviting || !newInviteEmail}
+                disabled={isDemo || inviting || !newInviteEmail}
                 className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+                title={isDemo ? "Read-only in demo mode" : undefined}
               >
                 {inviting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Invite"}
               </button>
@@ -821,8 +845,9 @@ function StudioDashboardInner() {
                       <span className="text-sm text-gray-600">{invite.email}</span>
                       <button
                         onClick={() => handleRemoveInvite(invite.email)}
-                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                        title="Remove Access"
+                        disabled={isDemo}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                        title={isDemo ? "Read-only in demo mode" : "Remove Access"}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1029,8 +1054,9 @@ function StudioDashboardInner() {
                 />
                 <button
                   type="submit"
-                  disabled={addingFamily}
+                  disabled={isDemo || addingFamily}
                   className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+                  title={isDemo ? "Read-only in demo mode" : undefined}
                 >
                   {addingFamily ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Add Context"}
                 </button>
@@ -1052,7 +1078,8 @@ function StudioDashboardInner() {
                 <div key={member.id} className="bg-white/80 backdrop-blur-xl border border-white shadow-sm rounded-3xl p-5 flex flex-col relative group">
                   <button 
                     onClick={() => handleDeleteFamilyMember(member.id)}
-                    className="absolute top-3 right-3 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    disabled={isDemo}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:hidden"
                     title="Remove"
                   >
                     <X className="w-4 h-4" />
@@ -1095,18 +1122,21 @@ function StudioDashboardInner() {
             accept="image/*"
             multiple
             className="hidden"
+            disabled={isDemo}
             onChange={(e) => e.target.files && uploadFiles(e.target.files)}
           />
 
           <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={(e) => { if (!isDemo) { e.preventDefault(); setDragOver(true); } }}
             onDragLeave={() => setDragOver(false)}
-            onDrop={onDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
-              dragOver
-                ? "border-emerald-400 bg-emerald-50"
-                : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/50"
+            onDrop={isDemo ? undefined : onDrop}
+            onClick={() => !isDemo && fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
+              isDemo
+                ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+                : dragOver
+                  ? "border-emerald-400 bg-emerald-50 cursor-pointer"
+                  : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer"
             }`}
           >
             {uploading ? (

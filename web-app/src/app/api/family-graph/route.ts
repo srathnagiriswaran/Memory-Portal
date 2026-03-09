@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { getFamilyId } from "@/lib/api-auth";
+import { getFamilyId, isDemoAccount } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
   try {
@@ -31,6 +31,9 @@ export async function POST(request: Request) {
     if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (isDemoAccount(familyId)) {
+      return NextResponse.json({ error: "Demo account is read-only" }, { status: 403 });
+    }
 
     const { name, relationship, details } = await request.json();
     if (!name || !relationship) {
@@ -57,6 +60,9 @@ export async function DELETE(request: Request) {
     const familyId = await getFamilyId(request);
     if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (isDemoAccount(familyId)) {
+      return NextResponse.json({ error: "Demo account is read-only" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { adminDb } from "@/lib/firebase-admin";
 import speech from "@google-cloud/speech";
-import { getFamilyId } from "@/lib/api-auth";
+import { getFamilyId, isDemoAccount } from "@/lib/api-auth";
 
 // Initialize the Speech client
 const speechClient = new speech.SpeechClient({
@@ -25,6 +25,9 @@ export async function POST(request: Request) {
     const familyId = await getFamilyId(request);
     if (!familyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (isDemoAccount(familyId)) {
+      return NextResponse.json({ error: "Demo account is read-only" }, { status: 403 });
     }
 
     const formData = await request.formData();

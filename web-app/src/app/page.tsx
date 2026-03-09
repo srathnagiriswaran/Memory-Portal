@@ -83,8 +83,9 @@ export default function Home() {
           <span className="font-bold text-gray-900 tracking-tight">Memory Portal</span>
         </div>
         <button onClick={() => signIn("google")}
-          className="text-sm text-gray-500 hover:text-gray-900 font-medium flex items-center gap-1.5 transition-colors">
-          Caregiver Login <ArrowRight className="w-3.5 h-3.5" />
+          className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm hover:shadow-md">
+          <span>Caregiver Login</span>
+          <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </nav>
 

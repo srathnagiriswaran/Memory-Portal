@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { getFamilyId } from "@/lib/api-auth";
+import { getFamilyId, isDemoAccount } from "@/lib/api-auth";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
@@ -43,7 +43,10 @@ export async function POST(request: Request) {
     }
 
     const familyId = await getFamilyId(request);
-    
+    if (familyId && isDemoAccount(familyId)) {
+      return NextResponse.json({ error: "Demo account is read-only" }, { status: 403 });
+    }
+
     // Only the true primary caregiver can invite others
     if (familyId !== session.user.email.toLowerCase()) {
       return NextResponse.json(
@@ -88,7 +91,10 @@ export async function DELETE(request: Request) {
     }
 
     const familyId = await getFamilyId(request);
-    
+    if (familyId && isDemoAccount(familyId)) {
+      return NextResponse.json({ error: "Demo account is read-only" }, { status: 403 });
+    }
+
     // Only the true primary caregiver can remove invites
     if (familyId !== session.user.email.toLowerCase()) {
       return NextResponse.json(
