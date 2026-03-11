@@ -9,7 +9,7 @@
 > **A submission for the Google Gemini API Developer Competition**  
 > **Category:** Live Agents  
 > **Live Application:** [memory-portal-app.a.run.app](https://memory-portal-app-uqp246quja-uc.a.run.app)  
-> **Demo Video:** *[Insert YouTube/Vimeo Link Here]*
+> **Demo Video:** https://www.youtube.com/watch?v=LbPNHtZ6dHA
 
 ---
 
