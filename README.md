@@ -6,7 +6,7 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore_%7C_Storage-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Gemini](https://img.shields.io/badge/Gemini-Live_API-8E75B2?logo=google-bard&logoColor=white)](https://aistudio.google.com/)
 
-> **A submission for the Google Gemini API Developer Competition**  
+> **A submission for the Google Gemini API Developer Hackathon**  
 > **Category:** Live Agents  
 > **Live Application:** [memory-portal-app.a.run.app](https://memory-portal-app-uqp246quja-uc.a.run.app)  
 > **Demo Video:** https://www.youtube.com/watch?v=LbPNHtZ6dHA
