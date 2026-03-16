@@ -19,10 +19,14 @@ INSTRUCTIONS:
 7. Do not act like an AI or a computer. Act like a beloved family friend sitting next to them holding their hand.
 8. Start the conversation by warmly greeting them by name and commenting on the photo using the background information provided. Do NOT say things like "Sharan uploaded this photo" or act like a software system announcing an upload. Simply weave the information naturally into conversation.
 9. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.
-10. PHOTO NAVIGATION (CRITICAL): You have an 'AVAILABLE PHOTO ALBUM CATALOG' listing all photos by ID. If the user brings up a topic, a memory, a person, or an object that matches a DIFFERENT photo in the catalog, you MUST immediately stop talking and CALL THE 'changePhoto' TOOL with the exact [ID] of the matching photo. DO NOT ANSWER IN TEXT FIRST. Call the tool first.
+10. PHOTO NAVIGATION (CRITICAL): You have an 'AVAILABLE PHOTO ALBUM CATALOG' listing all photos by ID. Two situations require calling 'changePhoto':
+   a) TOPIC MATCH: If the user brings up a topic, a memory, a person, or an object that matches a DIFFERENT photo in the catalog, CALL 'changePhoto' with the matching photo ID immediately. DO NOT ANSWER IN TEXT FIRST.
+   b) EXPLICIT NAVIGATION REQUEST: If the user says anything like "show me another one", "next photo", "can we see a different picture", "show me something else", or any similar request to move to a new photo — IMMEDIATELY CALL 'changePhoto' with the ID of a photo you have NOT recently shown. Pick a different photo from the catalog. DO NOT ask which one; just pick one and call the tool.
 11. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool with the [ID] of a happy or calming memory from the catalog to regulate their emotions.
 12. FAMILY KNOWLEDGE: You have access to a FAMILY KNOWLEDGE GRAPH. Use this provided family context seamlessly as if you've always known their family. Actively draw connections between what the user says, the photos, and the hobbies, details, or relationships of their family members. If they mention someone from the knowledge graph, look for photos of them in the catalog!
-13. ENDING THE CONVERSATION (CRITICAL): If the user says they want to stop, are tired, want to go to sleep, or want to say goodbye, you MUST warmly say goodbye AND simultaneously CALL the 'endSession' tool to gracefully close the application. DO NOT just say goodbye in text; the tool call is mandatory to end the session.`;
+13. ENDING THE CONVERSATION (CRITICAL): If the user expresses ANY intent to stop — including but not limited to: "goodbye", "bye", "I'm done", "that's enough", "I should go", "I'm tired", "I think that's it", "I'm going to rest", "let's stop", "I want to stop", "I need to go", "that's all for now" — you MUST warmly say a brief farewell AND simultaneously CALL the 'endSession' tool. DO NOT just say goodbye in text; the tool call is MANDATORY. When in doubt, call endSession rather than continuing the conversation.
+14. RE-ENGAGING AFTER SILENCE: If the user has gone quiet and not responded for a noticeable while, gently re-engage by making a NEW warm observation about the current photo — something you haven't mentioned yet. Do NOT repeat the same question you already asked. Keep it to one soft sentence, like a friend musing aloud, not a prompt demanding a response.
+15. HANDLING REPETITION: If the user repeats a story, detail, or memory they have already shared in this conversation, respond with the same warmth and enthusiasm as if you are hearing it for the very first time. NEVER say "you already told me", "as you mentioned", "you said that earlier", or anything that signals you remember them saying it before. Every telling deserves a fresh, loving reaction.`;
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
@@ -78,6 +82,10 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
   }, [isMuted]);
 
   const loudFramesRef = useRef(0);
+  // Tracks whether we're in a post-interrupt suppression window.
+  // During this window we stop sending audio to avoid the server consuming
+  // the user's first syllables before it has processed the interrupt signal.
+  const interruptSuppressUntilRef = useRef<number>(0);
 
   const startAudioCapture = useCallback(() => {
     if (!streamRef.current || !captureCtxRef.current) return;
@@ -111,23 +119,36 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
       // If muted or not connected/ready, just return without sending audio
       if (wsRef.current?.readyState !== WebSocket.OPEN || !setupDoneRef.current || isMutedRef.current) return;
 
-      // Better VAD (Voice Activity Detection) - interrupt only if sustained loud noise (e.g. 3 frames = ~0.75s)
+      // Client-side VAD: 3 sustained loud frames (~0.75s) while AI is talking = user is interrupting
       if (loudFramesRef.current > 2 && isAiTalkingRef.current) { 
-        console.log("[GeminiLive] Client-side VAD detected sustained user speech, stopping local playback");
+        console.log("[GeminiLive] VAD: user interruption detected, stopping local playback and signaling server");
         
-        // We used to send a manual text turn here to interrupt, but that confuses the AI.
-        // Instead, we just stop local playback to make it feel responsive. The server's own VAD
-        // will detect the audio stream and send an 'interrupted: true' signal shortly after.
-        
-        // Stop current audio playback
+        // 1. Stop local playback immediately so the user hears themselves
         activeSourcesRef.current.forEach((src) => {
           try { src.stop(); } catch (err) {}
         });
         activeSourcesRef.current = [];
         nextPlayTimeRef.current = 0;
         setIsAiTalking(false);
-        loudFramesRef.current = 0; // Reset
+        loudFramesRef.current = 0;
+
+        // 2. Send an empty turn-complete to force a clean turn boundary on the server.
+        //    This is different from injecting text (which confused the AI before) — it just
+        //    closes the current model turn so the server's VAD starts fresh for the next user turn.
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            clientContent: { turns: [], turnComplete: true }
+          }));
+        }
+
+        // 3. Suppress outgoing PCM for 300ms to give the server time to process the interrupt
+        //    before the user's real question arrives. This prevents the first syllables of the
+        //    user's speech from being consumed mid-turn and causing the "have to repeat" issue.
+        interruptSuppressUntilRef.current = Date.now() + 300;
       }
+
+      // Drop audio frames during the suppression window
+      if (Date.now() < interruptSuppressUntilRef.current) return;
       
       const pcm16 = new Int16Array(inputData.length);
       for (let i = 0; i < inputData.length; i++) {
@@ -260,7 +281,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                   functionDeclarations: [
                     {
                       name: "changePhoto",
-                      description: "Changes the displayed photo to a specific ID from the AVAILABLE PHOTO ALBUM CATALOG. Use this when the user mentions a topic that matches another photo in the catalog.",
+                      description: "Changes the displayed photo to a specific ID from the AVAILABLE PHOTO ALBUM CATALOG. Use this when: (1) the user mentions a topic, person, or memory that matches another photo, OR (2) the user explicitly asks to see a different or next photo — in that case pick any unshown photo from the catalog.",
                       parameters: {
                         type: "OBJECT",
                         properties: {
@@ -271,7 +292,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                     },
                     {
                       name: "endSession",
-                      description: "Ends the conversation gracefully and closes the session. Use this when the user says goodbye or indicates they want to stop.",
+                      description: "Ends the conversation gracefully and closes the session. Use this whenever the user indicates they want to stop — including 'goodbye', 'bye', 'I\\'m done', 'that\\'s enough', 'I should go', 'I\\'m tired', 'let\\'s stop', or any similar farewell or closing intent. When in doubt, call this tool.",
                       parameters: {
                         type: "OBJECT",
                         properties: {}
@@ -427,7 +448,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                     });
                     // Detect goodbye intent as a text-based fallback for when the model
                     // says goodbye verbally but forgets to call the endSession tool
-                    if (/\b(goodbye|bye|goodnight|good night|take care|sweet dreams|sleep well|rest well|farewell|talk soon)\b/i.test(textChunk)) {
+                    if (/\b(goodbye|bye|goodnight|good night|take care|sweet dreams|sleep well|rest well|farewell|talk soon|see you|until next time|all for now|that'?s all|i'?m done|that'?s enough|have a good|have a wonderful|have a lovely)\b/i.test(textChunk)) {
                       goodbyeTextDetectedRef.current = true;
                     }
                   }
