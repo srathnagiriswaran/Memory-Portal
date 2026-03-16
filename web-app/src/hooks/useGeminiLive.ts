@@ -6,7 +6,7 @@ const SYSTEM_INSTRUCTION = `You are a deeply warm, patient, and loving companion
 
 INSTRUCTIONS:
 1. Keep your responses very brief (1-2 sentences).
-2. Speak slowly, enthusiastically, and warmly.
+2. Speak very slowly with a deliberate pause between each sentence, as if giving the listener time to absorb every word. Never rush. Warmth matters more than pace.
 3. Use the user's name occasionally to maintain warmth, but DO NOT use it in every single sentence (e.g., use it once every few exchanges).
 4. NEVER ask "Do you remember..." or "Who is this?" or quiz the user. Instead, share a pleasant observation and gently ask ONE open-ended question at a time to learn more about the photo, the people in it, or the memories associated with it (e.g., "What was your favorite part of this day?"). The goal is to naturally harvest new insights without overwhelming them.
 5. ANTI-HALLUCINATION & POSITIVITY GUARDRAILS (CRITICAL):
@@ -21,12 +21,13 @@ INSTRUCTIONS:
 9. CRITICAL: NEVER output internal thoughts, stage directions, meta-commentary, or actions enclosed in asterisks (e.g., "**Observing the photo**"). Just speak the words.
 10. PHOTO NAVIGATION (CRITICAL): You have an 'AVAILABLE PHOTO ALBUM CATALOG' listing all photos by ID. Two situations require calling 'changePhoto':
    a) TOPIC MATCH: If the user brings up a topic, a memory, a person, or an object that matches a DIFFERENT photo in the catalog, CALL 'changePhoto' with the matching photo ID immediately. DO NOT ANSWER IN TEXT FIRST.
-   b) EXPLICIT NAVIGATION REQUEST: If the user says anything like "show me another one", "next photo", "can we see a different picture", "show me something else", or any similar request to move to a new photo — IMMEDIATELY CALL 'changePhoto' with the ID of a photo you have NOT recently shown. Pick a different photo from the catalog. DO NOT ask which one; just pick one and call the tool.
+   b) EXPLICIT NAVIGATION REQUEST: If the user says anything like "show me another one", "next photo", "can we see a different picture", "show me something else", or any similar request to move to a new photo — IMMEDIATELY CALL 'changePhoto' with the ID of a photo you have NOT recently shown. DO NOT ask for permission. DO NOT say "would you like to see..." or "shall we look at...". DO NOT wait for confirmation. Just call the tool instantly and let the photo change speak for itself.
 11. TONE DETECTION & PIVOTING: Actively listen to the user's emotional tone. If they sound sad, distressed, or confused, gently validate their feelings and immediately use the 'changePhoto' tool with the [ID] of a happy or calming memory from the catalog to regulate their emotions.
 12. FAMILY KNOWLEDGE: You have access to a FAMILY KNOWLEDGE GRAPH. Use this provided family context seamlessly as if you've always known their family. Actively draw connections between what the user says, the photos, and the hobbies, details, or relationships of their family members. If they mention someone from the knowledge graph, look for photos of them in the catalog!
 13. ENDING THE CONVERSATION (CRITICAL): If the user expresses ANY intent to stop — including but not limited to: "goodbye", "bye", "I'm done", "that's enough", "I should go", "I'm tired", "I think that's it", "I'm going to rest", "let's stop", "I want to stop", "I need to go", "that's all for now" — you MUST warmly say a brief farewell AND simultaneously CALL the 'endSession' tool. DO NOT just say goodbye in text; the tool call is MANDATORY. When in doubt, call endSession rather than continuing the conversation.
 14. RE-ENGAGING AFTER SILENCE: If the user has gone quiet and not responded for a noticeable while, gently re-engage by making a NEW warm observation about the current photo — something you haven't mentioned yet. Do NOT repeat the same question you already asked. Keep it to one soft sentence, like a friend musing aloud, not a prompt demanding a response.
-15. HANDLING REPETITION: If the user repeats a story, detail, or memory they have already shared in this conversation, respond with the same warmth and enthusiasm as if you are hearing it for the very first time. NEVER say "you already told me", "as you mentioned", "you said that earlier", or anything that signals you remember them saying it before. Every telling deserves a fresh, loving reaction.`;
+15. HANDLING REPETITION: If the user repeats a story, detail, or memory they have already shared in this conversation, respond with the same warmth and enthusiasm as if you are hearing it for the very first time. NEVER say "you already told me", "as you mentioned", "you said that earlier", or anything that signals you remember them saying it before. Every telling deserves a fresh, loving reaction.
+16. GENTLE SESSION CHECK-IN: If you receive a message saying "[SESSION_CHECKIN]", warmly and gently ask the user if they would like to keep looking at photos or if they are ready for a little rest — something like "We've had such a lovely time together. Would you like to see a few more photos, or are you ready for a little rest?" Wait for their response. If they say yes or want to continue, keep going warmly. If they say no, they're tired, or they don't respond clearly, say a warm goodbye and call the 'endSession' tool.`;
 
 type GeminiLiveState = "disconnected" | "connecting" | "connected" | "error";
 
@@ -49,6 +50,9 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
   const setupDoneRef = useRef(false);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const lastInteractionTimeRef = useRef<number>(Date.now());
+  const sessionStartTimeRef = useRef<number>(0);
+  const checkinSentRef = useRef<boolean>(false);
+  const greetingDoneRef = useRef<boolean>(false);
 
   const [isMuted, setIsMuted] = useState(false);
 
@@ -82,10 +86,8 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
   }, [isMuted]);
 
   const loudFramesRef = useRef(0);
-  // Tracks whether we're in a post-interrupt suppression window.
-  // During this window we stop sending audio to avoid the server consuming
-  // the user's first syllables before it has processed the interrupt signal.
-  const interruptSuppressUntilRef = useRef<number>(0);
+  // Prevents the interrupt from re-firing on every frame once already triggered.
+  const interruptFiredRef = useRef(false);
 
   const startAudioCapture = useCallback(() => {
     if (!streamRef.current || !captureCtxRef.current) return;
@@ -114,16 +116,20 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
         loudFramesRef.current += 1;
       } else {
         loudFramesRef.current = 0;
+        interruptFiredRef.current = false; // Reset once user goes quiet
       }
 
       // If muted or not connected/ready, just return without sending audio
       if (wsRef.current?.readyState !== WebSocket.OPEN || !setupDoneRef.current || isMutedRef.current) return;
 
-      // Client-side VAD: 3 sustained loud frames (~0.75s) while AI is talking = user is interrupting
-      if (loudFramesRef.current > 2 && isAiTalkingRef.current) { 
-        console.log("[GeminiLive] VAD: user interruption detected, stopping local playback and signaling server");
+      // Client-side VAD: fire on the 1st sustained loud frame (~256ms) while AI is talking.
+      // interruptFiredRef prevents re-triggering on every subsequent frame of the same utterance.
+      if (loudFramesRef.current >= 1 && isAiTalkingRef.current && !interruptFiredRef.current) { 
+        console.log("[GeminiLive] VAD: user interruption detected, stopping local playback");
+        interruptFiredRef.current = true;
         
-        // 1. Stop local playback immediately so the user hears themselves
+        // Stop local playback immediately so the user hears themselves.
+        // The server's own VAD handles the turn boundary natively from the continuous audio stream.
         activeSourcesRef.current.forEach((src) => {
           try { src.stop(); } catch (err) {}
         });
@@ -131,24 +137,7 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
         nextPlayTimeRef.current = 0;
         setIsAiTalking(false);
         loudFramesRef.current = 0;
-
-        // 2. Send an empty turn-complete to force a clean turn boundary on the server.
-        //    This is different from injecting text (which confused the AI before) — it just
-        //    closes the current model turn so the server's VAD starts fresh for the next user turn.
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({
-            clientContent: { turns: [], turnComplete: true }
-          }));
-        }
-
-        // 3. Suppress outgoing PCM for 300ms to give the server time to process the interrupt
-        //    before the user's real question arrives. This prevents the first syllables of the
-        //    user's speech from being consumed mid-turn and causing the "have to repeat" issue.
-        interruptSuppressUntilRef.current = Date.now() + 300;
       }
-
-      // Drop audio frames during the suppression window
-      if (Date.now() < interruptSuppressUntilRef.current) return;
       
       const pcm16 = new Int16Array(inputData.length);
       for (let i = 0; i < inputData.length; i++) {
@@ -236,6 +225,9 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
       pendingContextRef.current = initialContext;
       pendingEndSessionRef.current = false;
       goodbyeTextDetectedRef.current = false;
+      checkinSentRef.current = false;
+      greetingDoneRef.current = false;
+      sessionStartTimeRef.current = Date.now();
 
       // To avoid P0 API Key Exfiltration without using short-lived tokens,
       // we securely proxy the WebSocket through Next.js Edge Middleware.
@@ -346,7 +338,8 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                 );
               }
 
-              startAudioCapture();
+              // Don't start the mic yet — wait for the AI to finish its opening greeting.
+              // startAudioCapture() is called on the first turnComplete after setup.
               return;
             }
 
@@ -358,6 +351,19 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
               activeSourcesRef.current = [];
               nextPlayTimeRef.current = 0;
               setIsAiTalking(false);
+            }
+
+            // Check user's own speech transcription for farewell intent.
+            // This is more reliable than waiting for the AI's text response in audio-only mode,
+            // since modelTurn text parts are rarely populated when responseModalities is AUDIO.
+            if (data.serverContent?.inputTranscription?.text) {
+              const userText = data.serverContent.inputTranscription.text;
+              setTranscript((prev) => [...prev, `You: ${userText}`]);
+              // Only match phrases that are unambiguously a farewell from the user.
+              if (/\b(goodbye|goodnight|good night|i'?m done|i should go|i'?m tired|let'?s stop|i want to stop|i need to go|i'?m going to (bed|rest|sleep)|time to (rest|go|sleep))\b/i.test(userText)) {
+                console.log("[GeminiLive] Farewell intent detected in user speech — arming goodbye fallback");
+                goodbyeTextDetectedRef.current = true;
+              }
             }
 
             // Function to handle tool calls to avoid duplication
@@ -447,8 +453,9 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                       return copy;
                     });
                     // Detect goodbye intent as a text-based fallback for when the model
-                    // says goodbye verbally but forgets to call the endSession tool
-                    if (/\b(goodbye|bye|goodnight|good night|take care|sweet dreams|sleep well|rest well|farewell|talk soon|see you|until next time|all for now|that'?s all|i'?m done|that'?s enough|have a good|have a wonderful|have a lovely)\b/i.test(textChunk)) {
+                    // says goodbye verbally but forgets to call the endSession tool.
+                    // Patterns must be unambiguously terminal — avoid phrases that appear mid-conversation.
+                    if (/\b(goodbye|goodnight|good night|sweet dreams|sleep well|rest well|farewell)\b/i.test(textChunk)) {
                       goodbyeTextDetectedRef.current = true;
                     }
                   }
@@ -463,6 +470,15 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
 
             if (data.serverContent?.turnComplete) {
               console.log("[GeminiLive] Model turn complete");
+
+              // First turnComplete after setup = AI has finished its opening greeting.
+              // Now it's safe to open the mic and start listening.
+              if (!greetingDoneRef.current) {
+                greetingDoneRef.current = true;
+                console.log("[GeminiLive] Opening mic after greeting.");
+                startAudioCapture();
+              }
+
               if (activeSourcesRef.current.length === 0) {
                 setIsAiTalking(false);
                 if (pendingEndSessionRef.current && onEndSessionRef.current) {
@@ -470,13 +486,16 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
                   pendingEndSessionRef.current = false;
                   onEndSessionRef.current();
                 } else if (goodbyeTextDetectedRef.current && onEndSessionRef.current) {
-                  console.log("[GeminiLive] Goodbye text detected — closing session via text fallback after turn complete.");
+                  // Farewell was detected (from user speech or AI text). Give the model 1s to
+                  // emit an endSession tool call; if it doesn't, force-close. In audio-only mode
+                  // the model often says goodbye verbally without emitting a tool call.
+                  console.log("[GeminiLive] Farewell detected — closing session after grace period.");
                   goodbyeTextDetectedRef.current = false;
                   setTimeout(() => {
                     if (!pendingEndSessionRef.current && onEndSessionRef.current) {
                       onEndSessionRef.current();
                     }
-                  }, 2000);
+                  }, 1000);
                 }
               }
             }
@@ -509,8 +528,15 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
     wsRef.current = null;
     setupDoneRef.current = false;
     streamRef.current?.getTracks().forEach((t) => t.stop());
-    captureCtxRef.current?.close();
-    playbackCtxRef.current?.close();
+    streamRef.current = null;
+    if (captureCtxRef.current?.state !== "closed") {
+      captureCtxRef.current?.close();
+    }
+    captureCtxRef.current = null;
+    if (playbackCtxRef.current?.state !== "closed") {
+      playbackCtxRef.current?.close();
+    }
+    playbackCtxRef.current = null;
     if ((window as any)._audioProcessor) {
         (window as any)._audioProcessor.disconnect();
         (window as any)._audioProcessor = null;
@@ -519,17 +545,37 @@ export function useGeminiLive(options: { onChangePhoto?: (photoId: string) => st
     setHasSpoken(false);
   }, []);
 
-  // Idle timeout detector (e.g., 2 minutes of silence)
+  // Session timer: check-in after 60s, idle disconnect after 2min silence
   useEffect(() => {
-    const IDLE_TIMEOUT_MS = 120000; // 2 minutes
+    const IDLE_TIMEOUT_MS = 120000;
+    const CHECKIN_AFTER_MS = 60000;
+
     const interval = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN && !isAiTalkingRef.current) {
-        if (Date.now() - lastInteractionTimeRef.current > IDLE_TIMEOUT_MS) {
-          console.log("[GeminiLive] Auto-disconnecting due to 2 minutes of inactivity.");
-          disconnect();
-        }
+      if (wsRef.current?.readyState !== WebSocket.OPEN) return;
+
+      // Gentle check-in at ~1 minute into the session, when AI is not mid-sentence
+      if (
+        !checkinSentRef.current &&
+        !isAiTalkingRef.current &&
+        sessionStartTimeRef.current > 0 &&
+        Date.now() - sessionStartTimeRef.current > CHECKIN_AFTER_MS
+      ) {
+        checkinSentRef.current = true;
+        console.log("[GeminiLive] Sending session check-in prompt.");
+        wsRef.current.send(JSON.stringify({
+          clientContent: {
+            turns: [{ role: "user", parts: [{ text: "[SESSION_CHECKIN]" }] }],
+            turnComplete: true,
+          },
+        }));
       }
-    }, 10000); // Check every 10 seconds
+
+      // Hard idle disconnect after 2 minutes of silence
+      if (!isAiTalkingRef.current && Date.now() - lastInteractionTimeRef.current > IDLE_TIMEOUT_MS) {
+        console.log("[GeminiLive] Auto-disconnecting due to 2 minutes of inactivity.");
+        disconnect();
+      }
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [disconnect]);
